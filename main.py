@@ -19,6 +19,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-if __name__ == "__main__":
-    port = os.environ.get('PORT') if os.environ.get('PORT') else 8000 # Para deploy no Heroku
-    uvicorn.run(app, host="0.0.0.0", port=port)
+@app.get("/", tags=["Home"])
+async def get_home():
+    return {"message": "Hello Database!"}
