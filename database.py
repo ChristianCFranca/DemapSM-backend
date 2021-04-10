@@ -11,7 +11,5 @@ if not DATABASE_LOGIN or not DATABASE_PASSWORD:
 URL = f"mongodb+srv://{DATABASE_LOGIN}:{DATABASE_PASSWORD}@cluster0.zj9tl.mongodb.net/Cluster0?"
 client = MongoClient(URL)
 
-# "admin:pedidosdecompra"
-
 DB = 'pedidosdecompradb'
 db = client[DB]
