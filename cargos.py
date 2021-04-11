@@ -1,11 +1,11 @@
 from fastapi import Depends, FastAPI, HTTPException, APIRouter, status, Body
 from typing import List
-from database import db
-from bson import ObjectId
+# from database import db
+# from bson import ObjectId
 import os
 
-COLLECTION = "cargos"
-collection = db[COLLECTION]
+# COLLECTION = "cargos"
+# collection = db[COLLECTION]
 
 # Define nosso router
 router = APIRouter(prefix="/cargos", tags=["Aprovações"])
