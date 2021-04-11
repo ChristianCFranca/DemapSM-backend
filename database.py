@@ -2,13 +2,15 @@ import pymongo
 from pymongo import MongoClient
 import os
 
-DATABASE_LOGIN = os.environ.get('DATABASE_LOGIN')
-DATABASE_PASSWORD = os.environ.get('DATABASE_PASSWORD')
+#DATABASE_LOGIN = os.environ.get('DATABASE_LOGIN')
+#DATABASE_PASSWORD = os.environ.get('DATABASE_PASSWORD')
 
-if not DATABASE_LOGIN or not DATABASE_PASSWORD:
-    raise Exception("No DATABASE_LOGIN or DATABASE_PASSWORD available.")
-else:
-    print("Database data available! Connecting...")
+#if not DATABASE_LOGIN or not DATABASE_PASSWORD:
+#    raise Exception("No DATABASE_LOGIN or DATABASE_PASSWORD available.")
+#else:
+#    print("Database data available! Connecting...")
+DATABASE_LOGIN = "admin"
+DATABASE_PASSWORD = "pedidosdecompra"
 
 URL = f"mongodb+srv://{DATABASE_LOGIN}:{DATABASE_PASSWORD}@cluster0.zj9tl.mongodb.net/Cluster0?"
 client = MongoClient(URL)
