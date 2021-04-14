@@ -9,6 +9,8 @@ collection = db[COLLECTION]
 # Define nosso router
 router = APIRouter(prefix="/crud/pedidos", tags=["Pedidos de Compra"])
 
+from cargos import cargo_key, checkKey
+
 def filterPedidos(pedidos):
     if isinstance(pedidos, list):
         for pedido in pedidos:
@@ -67,8 +69,11 @@ def put_pedido(pedido_id: str, pedido = Body(...)):
     return {"alterado": res}
 
 @router.delete("/{pedido_id}", summary="Delete pedido")
-def delete_pedido(pedido_id: str):
-    if getPedido(pedido_id) is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado.")
-    res = deletePedido(pedido_id)
+def delete_pedido(pedido_id: str, key: str, cargo: int):
+    if checkKey(key, cargo):
+        if getPedido(pedido_id) is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado.")
+        res = deletePedido(pedido_id)
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chave inválida.")
     return {"alterado": res}
