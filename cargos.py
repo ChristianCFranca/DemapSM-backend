@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException, APIRouter, status, Body
+from fastapi import FastAPI, HTTPException, APIRouter, status, Body
 from typing import List
 # from database import db
 # from bson import ObjectId
@@ -16,6 +16,14 @@ cargo_key = {0: KEY_ASSISTENTE, 1: KEY_FISCAL, 2: KEY_ALMOXARIFE}
 def checkKey(key, cargo):
     return key == cargo_key[cargo]
 
+def checkKeyBoth(key):
+    return key == cargo_key[0] or key == cargo_key[1]
+
 @router.get("/keycheck", summary="Validar chave")
-def post_material(key: str, cargo: int):
+def post_key_cargo(key: str, cargo: int):
     return {"valid": checkKey(key, cargo)}
+
+@router.get("/keycheck_both", summary="Validar chave")
+def post_key_cargo_both(key: str):
+    return {"valid": checkKeyBoth(key)}
+    

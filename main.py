@@ -7,11 +7,13 @@ from fastapi.middleware.cors import CORSMiddleware
 import crud_pedidos
 import crud_materiais
 import cargos
+import collect_data
 
 app = FastAPI(title="Pedidos de Compra", description="REST API para realizar pedidos de compra no Banco Central do Brasil.", version="0.0.1")
 app.include_router(crud_pedidos.router)
 app.include_router(crud_materiais.router)
 app.include_router(cargos.router)
+app.include_router(collect_data.router)
 
 app.add_middleware(
     CORSMiddleware,
