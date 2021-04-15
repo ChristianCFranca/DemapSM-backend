@@ -5,10 +5,6 @@ Implementação da API do servidor do Sistema de Solicitação de Materiais não
 
 O banco de dados atualmente utilizado é o [MongoDB](https://www.mongodb.com/). A URL do cluster do MongoDB deve ser inserida no arquivo `database.py` diretamente nos campos ou deve ser setado em variáveis do ambiente `DATABASE_LOGIN` e `DATABASE_PASSWORD`.
 
-O serviço já está disponível utilizando a plataforma [Heroku](https://dashboard.heroku.com/) na URL https://demapsm-backend.herokuapp.com/. 
-
-Para acessar a documentação criada dinamicamente pelo FastAPI, acessar o endpoint `/docs`: https://demapsm-backend.herokuapp.com/docs
-
 ## Instalação e Execução
 
 Caso deseje rodar este projeto localmente, aqui estão apresentadas as soluções.
