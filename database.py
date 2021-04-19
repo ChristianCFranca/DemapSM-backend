@@ -6,7 +6,14 @@ DATABASE_LOGIN = os.environ.get('DATABASE_LOGIN')
 DATABASE_PASSWORD = os.environ.get('DATABASE_PASSWORD')
 
 if not DATABASE_LOGIN or not DATABASE_PASSWORD:
-    raise Exception("No DATABASE_LOGIN or DATABASE_PASSWORD available.")
+    from dotenv import load_dotenv
+    load_dotenv()
+    DATABASE_LOGIN = os.environ.get('DATABASE_LOGIN')
+    DATABASE_PASSWORD = os.environ.get('DATABASE_PASSWORD')
+    if not DATABASE_LOGIN or not DATABASE_PASSWORD:
+        raise Exception("No DATABASE_LOGIN or DATABASE_PASSWORD available.")
+    else:
+        print("Database data available through .env file! Connecting...")
 else:
     print("Database data available! Connecting...")
 
