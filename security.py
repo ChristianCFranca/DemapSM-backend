@@ -27,7 +27,12 @@ else:
     print("\033[94m"+"INFO:" + "\033[0m" + "\t  Secret Key environment data available! Loaded.")
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES") if os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES") is not None else 2
+ACCESS_TOKEN_EXPIRE_MINUTES = os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES")
+if not ACCESS_TOKEN_EXPIRE_MINUTES:
+    print("\033[93m" + "INFO:" + "\033[0m" + "\t  No ACCESS_TOKEN_EXPIRE_MINUTES available...")
+    ACCESS_TOKEN_EXPIRE_MINUTES = 2 # Padrão de 2 minutospara desenvolvimento
+else:
+    print("\033[94m"+"INFO:" + "\033[0m" + "\t  Expire Time environment data available! Loaded.")
 
 # Modelos -------------------------------
 class Token(BaseModel):
