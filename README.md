@@ -20,20 +20,20 @@ Caso deseje rodar este projeto localmente, aqui estão apresentadas as soluçõe
 
 `python main.py`
 ```
-INFO:     Started server process [12852] \
-INFO:     Waiting for application startup. \
-INFO:     Application startup complete. \
-INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit) \
+INFO:     Started server process [12852]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 ```
 
 3.2 - Também é possível rodar utilizando diretamente o `uvicorn`:
 
 `uvicorn main:app`
 ```
-INFO:     Started server process [12852] \
-INFO:     Waiting for application startup. \
-INFO:     Application startup complete. \
-INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit) \
+INFO:     Started server process [12852]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 ```
 
 4 - Acesse o endereço fornecido pela API (geralmente http://localhost/8000/docs) e verifique o correto funcionamento.
