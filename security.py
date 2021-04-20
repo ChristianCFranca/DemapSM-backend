@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, APIRouter, status, Request
+from fastapi import FastAPI, Depends, HTTPException, APIRouter, status, Request, Body
 
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, EmailError
@@ -12,15 +12,22 @@ from passlib.context import CryptContext
 
 from database import db # Importamos a conexão do banco de dados
 
+import os
+
 # Define nosso router
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
 COLLECTION = "users"
 collection = db[COLLECTION] # Definimos a conexão com a collection users
 
-SECRET_KEY = "abff49d6ea20daec2f0c1278863268858dd00b44e9c2d9ea5b236f4c200a6f18" # Não deve estar exposto em código
+SECRET_KEY = os.environ.get("SECRET_KEY") # Não deve estar exposto em código
+if not SECRET_KEY:
+    raise Exception("No SECRET_KEY available...")
+else:
+    print("\033[94m"+"INFO:" + "\033[0m" + "\t  Secret Key environment data available! Loaded.")
+
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1
+ACCESS_TOKEN_EXPIRE_MINUTES = os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES") if os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES") is not None else 2
 
 # Modelos -------------------------------
 class Token(BaseModel):
@@ -32,6 +39,7 @@ class TokenData(BaseModel):
 
 class User(BaseModel):
     username: str
+    nomeCompleto: str
     role: str
 
 class UserInDB(User):
@@ -89,17 +97,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return user # Devolve o usuario com as informações
 
-def check_strict_current_user_role(role): # Função (callable) que retorna outra funcao
-    async def check_strict_user_role(token: str = Depends(oauth2_scheme)):
-        user = await get_current_user(token)
-        if user.role != role:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Usuário não tem permissão para fazer isso."
-            )
-        return user
-    return check_strict_user_role
-
 # Funções de utilidade geral -------------------------------------------------------------------------------------------------------------------------------------------------
 
 def verify_password(plain_password, hashed_password):
@@ -132,18 +129,45 @@ def validate_email(username: str):
             detail="Usuário deve ser um email válido."
         )
     return username
+
+def validate_nome_completo(nome_completo: str):
+    if not nome_completo.replace(" ", "").isalpha():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nome deve conter apenas caracteres válidos."
+        )
+    if len(nome_completo.split(" ")) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nome completo deve apresentar pelo menos um sobrenome."
+        )
+    nome_completo = " ".join([nome.capitalize() for nome in nome_completo.lower().split(" ")])
+    return nome_completo
     
 def corr_roles(role1, role2):
-    if role1 == "admin":
+    if role1 == RoleName.admin:
         return True
-    if role1 == "fiscal":
-        if role2 != "assistente" and role2 != "regular":
+    elif role1 == RoleName.fiscal:
+        if role2 != RoleName.assistente and role2 != RoleName.regular:
             return False
         return True
-    if role1 == "assistente":
-        if role2 != "regular":
+    elif role1 == RoleName.assistente:
+        if role2 != RoleName.regular:
             return False
         return True
+    else:
+        return False
+
+def permissions_user_role(approved_roles: List[str]): # Função que retorna outra função. Útil para utilizar o Depends do fastapi
+    async def permission_ur(token: str = Depends(oauth2_scheme)):
+        user = await get_current_user(token)
+        if user.role not in approved_roles:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Usuário não possui permissão para fazer isso."
+            )
+        return user
+    return permission_ur
 
 # funções CRUD ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 def get_all_users():
@@ -171,9 +195,10 @@ def insert_new_user_if_not_exist(user: UserInDB):
     if not user_inserted.acknowledged:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Nome de usuário já existe."
+            detail="Ocorreu um erro ao salvar o usuário no banco de dados."
         )
     return user_inserted
+
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # A autenticação começa aqui. Se tudo der certo, a resposta é do modelo {"token": SEU_TOKEN, "token_type": "bearer"}
@@ -193,18 +218,19 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     )
     return {"access_token": access_token, "token_type": "bearer"} # Isso é salvo pela aplicação, que pode usar como bem entender
 
-@router.post("/users/create/{role_name}", response_model=User) # Criação de usuarios
-async def create_user(role_name: RoleName, request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
-    if role_name != "regular":
+@router.post("/users/create/", response_model=User) # Criação de usuarios
+async def create_user(request: Request, role_name: RoleName = Body(...), nome_completo: str = Body(...) , form_data: OAuth2PasswordRequestForm = Depends()):
+    if role_name != RoleName.regular:
         user = await get_current_user(await oauth2_scheme(request)) # Verifica se o usuário é valido
         if not corr_roles(user.role, role_name): # Pega o role do usuario atual e verifica sua permissao em relacao ao role colocado
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Usuário não tem permissão para criar esse role."
+                detail="Usuário não possui permissão para criar esse role."
             )
+    nome_completo = validate_nome_completo(nome_completo) # Valida o nome completo
     username = validate_email(form_data.username) # Valida o formato do email
-    hashed_password = pwd_context.hash(form_data.password)
-    user = UserInDB(username=username, hashed_password=hashed_password, role=role_name)
+    hashed_password = pwd_context.hash(form_data.password) # Criptografa a senha
+    user = UserInDB(username=username, nomeCompleto=nome_completo, hashed_password=hashed_password, role=role_name)
     user_inserted = insert_new_user_if_not_exist(user)
     return user
 
@@ -220,7 +246,7 @@ async def delete_user(username: str, current_user: User = Depends(get_current_us
     if not corr_roles(current_user.role, user.role):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Usuário não tem permissão para fazer isso."
+            detail="Usuário não possui permissão para fazer isso."
         )
     del_count = del_user(username=username)
     return {"deleted_count": del_count}
