@@ -16,7 +16,7 @@ Caso deseje rodar este projeto localmente, aqui estão apresentadas as soluçõe
 2 - Instale as dependências utilizando o gerenciador de pacotes python `pip` (sugiro criar um ambiente virtual antes: https://docs.python.org/3/library/venv.html):
 > pip install -r requirements.txt
 
-3.1 - Rode a API utilizando o comando:
+3 - Rode a API utilizando o comando:
 
 `uvicorn main:app`
 ```
