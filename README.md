@@ -3,7 +3,7 @@ Implementação da API do servidor do Sistema de Solicitação de Materiais não
 
 ![FastAPI Logo](https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png)
 
-O banco de dados atualmente utilizado é o [MongoDB](https://www.mongodb.com/). A URL do cluster do MongoDB deve ser inserida no arquivo `database.py` diretamente nos campos ou deve ser setado em variáveis do ambiente `DATABASE_LOGIN` e `DATABASE_PASSWORD`.
+O banco de dados atualmente utilizado é o [MongoDB](https://www.mongodb.com/). A URL do cluster do MongoDB Atlas pode ser inserida diretamente no arquivo `database.py` ou deve ser setada em variáveis do ambiente `DATABASE_LOGIN` e `DATABASE_PASSWORD`. Sugiro para isso utilizar um arquivo local `.env` (a aplicação já o espera localmente para desenvolvimento).
 
 ## Instalação e Execução
 
@@ -19,18 +19,21 @@ Caso deseje rodar este projeto localmente, aqui estão apresentadas as soluçõe
 3.1 - Rode a API utilizando o comando:
 
 `python main.py`
->INFO:     Started server process [12852] \
->INFO:     Waiting for application startup. \
->INFO:     Application startup complete. \
->INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit) \
-
+"""
+INFO:     Started server process [12852] \
+INFO:     Waiting for application startup. \
+INFO:     Application startup complete. \
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit) \
+"""
 
 3.2 - Também é possível rodar utilizando diretamente o `uvicorn`:
 
 `uvicorn main:app`
->INFO:     Started server process [12852] \
->INFO:     Waiting for application startup. \
->INFO:     Application startup complete. \
->INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit) \
+"""
+INFO:     Started server process [12852] \
+INFO:     Waiting for application startup. \
+INFO:     Application startup complete. \
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit) \
+"""
 
 4 - Acesse o endereço fornecido pela API (geralmente http://localhost/8000/docs) e verifique o correto funcionamento.
