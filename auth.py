@@ -259,7 +259,7 @@ async def create_user(request: Request, roleName: RoleName = Body(...), nomeComp
     user_inserted = insert_new_user_if_not_exist(user)
     return user
 
-@router.post("/users/update/", response_model=User)
+@router.put("/users/update/", response_model=User)
 async def put_user_password(user_to_update: UserForUpdate, current_user: User = Depends(get_current_user)):
     username = validate_email(user_to_update.username)
     user = get_user(username=username)
