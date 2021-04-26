@@ -23,7 +23,7 @@ app.include_router(auth.router)
 
 origins = [
     "http://localhost:8080",
-    "https://demapsm-herokuapp.com"
+    "https://demapsm.herokuapp.com"
 ]
 app.add_middleware(
     CORSMiddleware,
