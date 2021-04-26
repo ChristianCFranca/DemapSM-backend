@@ -2,7 +2,7 @@
 import uvicorn
 import os
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.cors import CORSMiddleware
 
 if os.path.exists("./.env"): # Carrega as variaveis de ambiente de desenvolvimento
     from dotenv import load_dotenv

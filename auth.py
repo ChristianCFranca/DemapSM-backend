@@ -260,7 +260,7 @@ async def create_user(request: Request, roleName: RoleName = Body(...), nomeComp
     return user
 
 @router.put("/users/update/", response_model=User)
-async def put_user_password(response: Response, user_to_update: UserForUpdate, current_user: User = Depends(get_current_user)):
+async def put_user_password(user_to_update: UserForUpdate, current_user: User = Depends(get_current_user)):
     username = validate_email(user_to_update.username)
     user = get_user(username=username)
     if user is None:
@@ -275,8 +275,6 @@ async def put_user_password(response: Response, user_to_update: UserForUpdate, c
         )
     new_hashed_password = get_password_hash(user_to_update.passwordNew)
     altered_document = update_user_password(username=username, new_hashed_password=new_hashed_password)
-    response.headers['Access-Control-Allow-Credentials'] = True
-    response.headers['Access-Control-Allow-Origin'] = "https://demapsm.herokuapp.com"
     return altered_document
 
 @router.delete("/users/delete/")
