@@ -30,9 +30,14 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES")
 if not ACCESS_TOKEN_EXPIRE_MINUTES:
     print("\033[93m" + "INFO:" + "\033[0m" + "\t  No ACCESS_TOKEN_EXPIRE_MINUTES available...")
-    ACCESS_TOKEN_EXPIRE_MINUTES = 2 # Padrão de 2 minutospara desenvolvimento
+    ACCESS_TOKEN_EXPIRE_MINUTES = 5 # Padrão de 5 minutos para desenvolvimento
 else:
-    print("\033[94m"+"INFO:" + "\033[0m" + "\t  Expire Time environment data available! Loaded.")
+    try:
+        ACCESS_TOKEN_EXPIRE_MINUTES = int(ACCESS_TOKEN_EXPIRE_MINUTES)
+        print("\033[94m"+"INFO:" + "\033[0m" + "\t  Expire Time environment data available! Loaded.")
+    except:
+        print("\033[94m"+"INFO:" + "\033[0m" + "\t  Expire Time environment data was found but could not be casted to an int. Loading base 5 minutes expire.")
+        ACCESS_TOKEN_EXPIRE_MINUTES = 5 # Padrão de 5 minutos para desenvolvimento
 
 # Modelos -------------------------------
 class Token(BaseModel):
@@ -44,16 +49,25 @@ class TokenData(BaseModel):
 
 class User(BaseModel):
     username: str
-    nomeCompleto: str
+    nome_completo: str
     role: str
+
+class UserWithToken(User):
+    access_token: str
+    token_type: str
 
 class UserInDB(User):
     hashed_password: str
+
+class PasswordForUpdate(BaseModel):
+    passwordOld: str
+    passwordNew: str
 
 class RoleName(str, Enum):
     admin = "admin"
     fiscal = "fiscal"
     assistente = "assistente"
+    almoxarife = "almoxarife"
     regular = "regular"
 
 # ---------------------------------------
@@ -126,12 +140,12 @@ def validate_email(username: str):
         if not username.endswith("@bcb.gov.br"):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Domínio do email inválido."
+                detail="Domínio do email inválido"
             )
     except EmailError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Usuário deve ser um email válido."
+            detail="Usuário deve ser um email válido"
         )
     return username
 
@@ -139,29 +153,27 @@ def validate_nome_completo(nome_completo: str):
     if not nome_completo.replace(" ", "").isalpha():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nome deve conter apenas caracteres válidos."
+            detail="Nome deve conter apenas caracteres válidos"
         )
     if len(nome_completo.split(" ")) < 2:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nome completo deve apresentar pelo menos um sobrenome."
+            detail="Nome completo deve apresentar pelo menos um sobrenome"
         )
     nome_completo = " ".join([nome.capitalize() for nome in nome_completo.lower().split(" ")])
     return nome_completo
     
+
 def corr_roles(role1, role2):
-    if role1 == RoleName.admin:
+    if role1 == RoleName.admin: # Admin pode tudo
         return True
-    elif role1 == RoleName.fiscal:
-        if role2 != RoleName.assistente and role2 != RoleName.regular:
-            return False
-        return True
-    elif role1 == RoleName.assistente:
-        if role2 != RoleName.regular:
-            return False
-        return True
-    else:
+    elif role2 == RoleName.admin: # Admin não pode ser alterado por ninguem fora outro admin
         return False
+    elif role1 == RoleName.fiscal and role2 != RoleName.fiscal: # Fiscais pode alterar todos que não sejam outros fiscais
+        return True
+    elif role1 == RoleName.assistente and role2 == RoleName.regular:
+        return True
+    return False
 
 def permissions_user_role(approved_roles: List[str]): # Função que retorna outra função. Útil para utilizar o Depends do fastapi
     async def permission_ur(token: str = Depends(oauth2_scheme)):
@@ -169,7 +181,7 @@ def permissions_user_role(approved_roles: List[str]): # Função que retorna out
         if user.role not in approved_roles:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Usuário não possui permissão para fazer isso."
+                detail="Usuário não possui permissão para fazer isso"
             )
         return user
     return permission_ur
@@ -183,6 +195,10 @@ def del_user(username: str):
     result = collection.delete_one({"username": username})
     return result.deleted_count
 
+def update_user_password(username: str, new_hashed_password: str):
+    altered_document = collection.find_one_and_update({"username": username}, {'$set': {"hashed_password": new_hashed_password}})
+    return altered_document
+
 def get_user(username: str):
     if collection.find_one({"username": username}) is not None:
         user_dict = collection.find_one({"username": username})
@@ -192,7 +208,7 @@ def insert_new_user_if_not_exist(user: UserInDB):
     if get_user(user.username) is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Nome de usuário já existe."
+            detail="Email já existe."
         )
     if not isinstance(user, dict):
         user = user.dict()
@@ -200,20 +216,20 @@ def insert_new_user_if_not_exist(user: UserInDB):
     if not user_inserted.acknowledged:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Ocorreu um erro ao salvar o usuário no banco de dados."
+            detail="Ocorreu um erro ao salvar o usuário no banco de dados"
         )
     return user_inserted
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # A autenticação começa aqui. Se tudo der certo, a resposta é do modelo {"token": SEU_TOKEN, "token_type": "bearer"}
-@router.post("/token", response_model=Token)
+@router.post("/token", response_model=UserWithToken)#, response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()): # Utiliza a dependencia OAuth2PasswordRequestForm, que captura as informacoes no padrao OAuth2 (form-data, etc)
     user = authenticate_user(form_data.username, form_data.password) # Tenta autenticar esse usuario com o usuario e o password. Só funciona se o usuário já existe
     if not user: # A função anterior retorna None se o usuário não existir no banco de dados ou existir e a senha estiver errada
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, # Status code de não autorizado
-            detail="Nome de usuário ou senha incorretos.",
+            detail="Nome de usuário ou senha incorretos",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)  # Representa a diferença entre dois objetos datetime. Aqui a configuração está em minutos
@@ -221,37 +237,58 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         data={"sub": user.username},  # Passa o usuario (sempre é possível obtê-lo do JWT depois), mas pode ser absolutamente qualquer informacao
         expires_delta=access_token_expires # Passamos o tempo de expiração
     )
-    return {"access_token": access_token, "token_type": "bearer"} # Isso é salvo pela aplicação, que pode usar como bem entender
+    user_with_token = user.dict()
+    user_with_token["access_token"] = access_token
+    user_with_token["token_type"] = "bearer"
+    return UserWithToken(**user_with_token) # Isso é salvo pela aplicação, que pode usar como bem entender
 
 @router.post("/users/create/", response_model=User) # Criação de usuarios
-async def create_user(request: Request, role_name: RoleName = Body(...), nome_completo: str = Body(...) , form_data: OAuth2PasswordRequestForm = Depends()):
-    if role_name != RoleName.regular:
+async def create_user(request: Request, roleName: RoleName = Body(...), nomeCompleto: str = Body(...) , form_data: OAuth2PasswordRequestForm = Depends()):
+    if roleName != RoleName.regular:
         user = await get_current_user(await oauth2_scheme(request)) # Verifica se o usuário é valido
-        if not corr_roles(user.role, role_name): # Pega o role do usuario atual e verifica sua permissao em relacao ao role colocado
+        if not corr_roles(user.role, roleName): # Pega o role do usuario atual e verifica sua permissao em relacao ao role colocado
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Usuário não possui permissão para criar esse role."
+                detail="Usuário não possui permissão para criar esse role"
             )
-    nome_completo = validate_nome_completo(nome_completo) # Valida o nome completo
+    nome_completo = validate_nome_completo(nomeCompleto) # Valida o nome completo
     username = validate_email(form_data.username) # Valida o formato do email
     hashed_password = pwd_context.hash(form_data.password) # Criptografa a senha
-    user = UserInDB(username=username, nomeCompleto=nome_completo, hashed_password=hashed_password, role=role_name)
+    user = UserInDB(username=username, nome_completo=nome_completo, hashed_password=hashed_password, role=roleName)
     user_inserted = insert_new_user_if_not_exist(user)
     return user
 
-@router.delete("/users/delete/{username}")
-async def delete_user(username: str, current_user: User = Depends(get_current_user)): # O membro de acima tem permissão de deletar qualquer membro de baixo
+@router.put("/users/update/", response_model=User)
+async def put_user_password(username: str, passwords: PasswordForUpdate, current_user: User = Depends(get_current_user)):
     username = validate_email(username)
     user = get_user(username=username)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Usuário não existe."
+            detail="Usuário não existe"
+        )
+    if not verify_password(passwords.passwordOld, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Senha incorreta"
+        )
+    new_hashed_password = get_password_hash(passwords.passwordNew)
+    altered_document = update_user_password(username=username, new_hashed_password=new_hashed_password)
+    return altered_document
+
+@router.delete("/users/delete/")
+async def delete_user(username: str, current_user: User = Depends(get_current_user)):
+    username = validate_email(username)
+    user = get_user(username=username)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Usuário não existe"
         )
     if not corr_roles(current_user.role, user.role):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Usuário não possui permissão para fazer isso."
+            detail="Usuário não possui permissão para fazer isso"
         )
     del_count = del_user(username=username)
     return {"deleted_count": del_count}
@@ -260,3 +297,7 @@ async def delete_user(username: str, current_user: User = Depends(get_current_us
 async def read_users_me(current_user: User = Depends(get_current_user)):
     users = get_all_users()
     return users
+
+@router.get("/users/me")
+async def read_users_me(current_user: User = Depends(get_current_user)):
+    return {"detail": "OK"}

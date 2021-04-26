@@ -3,7 +3,7 @@ from typing import List
 from database import db
 from bson import ObjectId
 
-from security import permissions_user_role, RoleName
+from auth import permissions_user_role, RoleName
 
 COLLECTION = "pedidosdecompra"
 collection = db[COLLECTION]
@@ -49,7 +49,7 @@ def deletePedido(pedido_id):
 
 @router.get("/", summary="Get pedidos", 
     dependencies=[Depends(permissions_user_role(approved_roles=[
-        RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.regular
+        RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
 def get_pedidos():
     pedidos = getPedidos()
@@ -58,7 +58,7 @@ def get_pedidos():
 
 @router.get("/{pedido_id}", summary="Get pedido by id", 
     dependencies=[Depends(permissions_user_role(approved_roles=[
-        RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.regular
+        RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
 def get_pedido(pedido_id: str):
     pedido = getPedido(pedido_id)
@@ -69,7 +69,7 @@ def get_pedido(pedido_id: str):
 
 @router.post("/", summary="Post pedido", 
     dependencies=[Depends(permissions_user_role(approved_roles=[
-        RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.regular
+        RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
 def post_pedido(pedido = Body(...)):
     pedido_id = postPedido(pedido)
@@ -78,7 +78,7 @@ def post_pedido(pedido = Body(...)):
 
 @router.put("/{pedido_id}", summary="Update pedido", 
     dependencies=[Depends(permissions_user_role(approved_roles=[
-        RoleName.admin, RoleName.fiscal, RoleName.assistente
+        RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife
         ]))])
 def put_pedido(pedido_id: str, pedido = Body(...)):
     if getPedido(pedido_id) is None:
