@@ -22,9 +22,8 @@ app.include_router(collect_data.router)
 app.include_router(auth.router)
 
 origins = [
-    "//localhost:8080",
-    "https://demapsm.herokuapp.com"
-    "//demapsm.herokuapp.com"
+    "http://localhost:8080",
+    os.environ.get("CORS_ORIGIN") if os.environ.get("CORS_ORIGIN") else "https://demapsm.herokuapp.com"
 ]
 app.add_middleware(
     CORSMiddleware,
