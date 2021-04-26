@@ -15,6 +15,11 @@ import collect_data
 import auth
 
 app = FastAPI(title="Pedidos de Compra", description="REST API para realizar pedidos de compra no Banco Central do Brasil.", version="0.0.1")
+app.include_router(crud_pedidos.router)
+app.include_router(crud_materiais.router)
+app.include_router(cargos.router)
+app.include_router(collect_data.router)
+app.include_router(auth.router)
 
 origins = [
     "http://localhost:8080",
@@ -26,13 +31,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
-
-app.include_router(crud_pedidos.router)
-app.include_router(crud_materiais.router)
-app.include_router(cargos.router)
-app.include_router(collect_data.router)
-app.include_router(auth.router)
 
 @app.get("/", tags=["Home"])
 async def get_home():
