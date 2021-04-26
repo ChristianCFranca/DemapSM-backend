@@ -59,7 +59,8 @@ class UserWithToken(User):
 class UserInDB(User):
     hashed_password: str
 
-class PasswordForUpdate(BaseModel):
+class UserForUpdate(BaseModel):
+    username: str
     passwordOld: str
     passwordNew: str
 
@@ -259,20 +260,20 @@ async def create_user(request: Request, roleName: RoleName = Body(...), nomeComp
     return user
 
 @router.put("/users/update/", response_model=User)
-async def put_user_password(username: str, passwords: PasswordForUpdate, current_user: User = Depends(get_current_user)):
-    username = validate_email(username)
+async def put_user_password(user_to_update: UserForUpdate, current_user: User = Depends(get_current_user)):
+    username = validate_email(user_to_update.username)
     user = get_user(username=username)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Usuário não existe"
         )
-    if not verify_password(passwords.passwordOld, user.hashed_password):
+    if not verify_password(user_to_update.passwordOld, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Senha incorreta"
         )
-    new_hashed_password = get_password_hash(passwords.passwordNew)
+    new_hashed_password = get_password_hash(user_to_update.passwordNew)
     altered_document = update_user_password(username=username, new_hashed_password=new_hashed_password)
     return altered_document
 
