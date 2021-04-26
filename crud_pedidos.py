@@ -1,7 +1,9 @@
-from fastapi import FastAPI, HTTPException, APIRouter, status, Body
+from fastapi import FastAPI, HTTPException, APIRouter, status, Body, Depends
 from typing import List
 from database import db
 from bson import ObjectId
+
+from auth import permissions_user_role, RoleName
 
 COLLECTION = "pedidosdecompra"
 collection = db[COLLECTION]
@@ -43,32 +45,52 @@ def deletePedido(pedido_id):
     res = collection.delete_one(pedido_id)
     return res.deleted_count
 
+# -----------------------------------------------------------------------------
 
-@router.get("/", summary="Get pedidos")
+@router.get("/", summary="Get pedidos", 
+    dependencies=[Depends(permissions_user_role(approved_roles=[
+        RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
+        ]))])
 def get_pedidos():
     pedidos = getPedidos()
     return filterPedidos(pedidos)
 
-@router.get("/{pedido_id}", summary="Get pedido by id")
+
+@router.get("/{pedido_id}", summary="Get pedido by id", 
+    dependencies=[Depends(permissions_user_role(approved_roles=[
+        RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
+        ]))])
 def get_pedido(pedido_id: str):
     pedido = getPedido(pedido_id)
     if pedido is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado.")
     return filterPedidos(pedido)
 
-@router.post("/", summary="Post pedido")
+
+@router.post("/", summary="Post pedido", 
+    dependencies=[Depends(permissions_user_role(approved_roles=[
+        RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
+        ]))])
 def post_pedido(pedido = Body(...)):
     pedido_id = postPedido(pedido)
     return {"_id": pedido_id}
 
-@router.put("/{pedido_id}", summary="Update pedido")
+
+@router.put("/{pedido_id}", summary="Update pedido", 
+    dependencies=[Depends(permissions_user_role(approved_roles=[
+        RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife
+        ]))])
 def put_pedido(pedido_id: str, pedido = Body(...)):
     if getPedido(pedido_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado.")
     res = putPedido(pedido_id, pedido)
     return {"alterado": res}
 
-@router.delete("/{pedido_id}", summary="Delete pedido")
+
+@router.delete("/{pedido_id}", summary="Delete pedido", 
+    dependencies=[Depends(permissions_user_role(approved_roles=[
+        RoleName.admin, RoleName.fiscal
+        ]))])
 def delete_pedido(pedido_id: str, key: str, cargo: int):
     if checkKey(key, cargo):
         if getPedido(pedido_id) is None:
