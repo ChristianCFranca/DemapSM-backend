@@ -52,6 +52,9 @@ class User(BaseModel):
     nome_completo: str
     role: str
 
+class UserWithID(User):
+    id: str
+
 class UserWithToken(User):
     access_token: str
     token_type: str
@@ -59,7 +62,7 @@ class UserWithToken(User):
 class UserInDB(User):
     hashed_password: str
 
-class UserForUpdate(BaseModel):
+class UserAndPasswordForUpdate(BaseModel):
     username: str
     passwordOld: str
     passwordNew: str
@@ -170,9 +173,9 @@ def corr_roles(role1, role2):
         return True
     elif role2 == RoleName.admin: # Admin não pode ser alterado por ninguem fora outro admin
         return False
-    elif role1 == RoleName.fiscal and role2 != RoleName.fiscal: # Fiscais pode alterar todos que não sejam outros fiscais
+    elif role1 == RoleName.fiscal: # Fiscais podem alterar e criar todos os outros
         return True
-    elif role1 == RoleName.assistente and role2 == RoleName.regular:
+    elif role1 == RoleName.assistente and role2 == RoleName.regular: # Assistente só pode alterar e criar alguém regular
         return True
     return False
 
@@ -196,8 +199,10 @@ def del_user(username: str):
     result = collection.delete_one({"username": username})
     return result.deleted_count
 
-def update_user_password(username: str, new_hashed_password: str):
-    altered_document = collection.find_one_and_update({"username": username}, {'$set': {"hashed_password": new_hashed_password}})
+def update_user(username: str, new_data: dict):
+    altered_document = collection.find_one_and_update(
+        {"username": username}, 
+        {'$set': new_data})
     return altered_document
 
 def get_user(username: str):
@@ -259,8 +264,8 @@ async def create_user(request: Request, roleName: RoleName = Body(...), nomeComp
     user_inserted = insert_new_user_if_not_exist(user)
     return user
 
-@router.put("/users/update/", response_model=User)
-async def put_user_password(user_to_update: UserForUpdate, current_user: User = Depends(get_current_user)):
+@router.put("/users/update/password", response_model=User)
+async def put_user_password(user_to_update: UserAndPasswordForUpdate, current_user: User = Depends(get_current_user)):
     username = validate_email(user_to_update.username)
     user = get_user(username=username)
     if user is None:
@@ -274,7 +279,25 @@ async def put_user_password(user_to_update: UserForUpdate, current_user: User = 
             detail="Senha incorreta"
         )
     new_hashed_password = get_password_hash(user_to_update.passwordNew)
-    altered_document = update_user_password(username=username, new_hashed_password=new_hashed_password)
+    altered_document = update_user(username=username, new_data={"hashed_password": new_hashed_password})
+    return altered_document
+
+@router.put("/users/update/general", response_model=User)
+async def put_user_password(user_to_update: User, current_user: User = Depends(get_current_user)):
+    username = validate_email(user_to_update.username)
+    user = get_user(username=username) # Verifica se o usuario que sofrerá modificação existe no banco de dados
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Usuário não existe"
+        )
+    if not corr_roles(current_user.role, user.role): # Pega o role do usuario autenticado atual e verifica sua permissao em relacao ao role do candidato a modificação
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuário não possui permissão para realizar essa alteração"
+        )
+    user_to_update = user_to_update.dict()
+    altered_document = update_user(username=username, new_data=user_to_update)
     return altered_document
 
 @router.delete("/users/delete/")
@@ -294,9 +317,16 @@ async def delete_user(username: str, current_user: User = Depends(get_current_us
     del_count = del_user(username=username)
     return {"deleted_count": del_count}
 
-@router.get("/users/", response_model=List[User])
+@router.get("/users/", response_model=List[UserWithID])
 async def read_users_me(current_user: User = Depends(get_current_user)):
     users = get_all_users()
+    if current_user.role == RoleName.regular: # Usuários regulares não podem ver os tipos de usuarios no sistema
+        raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Usuário não possui permissão para obter essa informação"
+            )
+    for user in users:
+        user['id'] = str(user.pop('_id'))
     return users
 
 @router.get("/users/me")
