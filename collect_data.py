@@ -1,6 +1,8 @@
-from fastapi import FastAPI, APIRouter, status
+from fastapi import FastAPI, APIRouter, status, Depends
 from fastapi.responses import StreamingResponse
 from bson import ObjectId
+
+from auth import permissions_user_role, RoleName
 
 from cargos import cargo_key, checkKey
 from crud_pedidos import getPedidos, collection
@@ -42,7 +44,10 @@ def getCorrectDF(df):
     return new_df
 
 
-@router.get("/", summary="Get todos os pedidos como arquivo")
+@router.get("/", summary="Get todos os pedidos como arquivo", 
+    dependencies=[Depends(permissions_user_role(approved_roles=[
+        RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife
+        ]))])
 async def get_pedidos():
     all_pedidos = getPedidos()
     pedidos_df = pd.DataFrame.from_records(all_pedidos)
