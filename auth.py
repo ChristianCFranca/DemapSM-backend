@@ -312,6 +312,12 @@ async def put_user_general(user_to_update: UserWithID, current_user: User = Depe
             detail="Usuário não possui permissão para realizar essa alteração"
         )
     user_to_update.username = validate_email(user_to_update.username) # Verifica se o email está válido
+    user = get_user(username=user_to_update.username)
+    if user is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Usuário já existe"
+        )
     user_to_update = user_to_update.dict() # Transforma o objeto em um dicionario
     altered_document = update_user_by_id(_id=user_to_update['id'], new_data=user_to_update) # Atualiza o usuario utilizando o ID
     return altered_document
