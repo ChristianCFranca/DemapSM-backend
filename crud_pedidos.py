@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException, APIRouter, status, Body, Depends
-from typing import List
 from database import db
 from bson import ObjectId
 
 from auth import permissions_user_role, RoleName
+from send_email import send_email_to_role
 
 COLLECTION = "pedidosdecompra"
 collection = db[COLLECTION]
@@ -11,7 +11,7 @@ collection = db[COLLECTION]
 # Define nosso router
 router = APIRouter(prefix="/crud/pedidos", tags=["Pedidos de Compra"])
 
-from cargos import cargo_key, checkKey
+from cargos import checkKey
 
 def filterPedidos(pedidos):
     if isinstance(pedidos, list):
@@ -72,6 +72,8 @@ def get_pedido(pedido_id: str):
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
 def post_pedido(pedido = Body(...)):
+    if pedido['statusStep'] == 2: # Envia um email
+        send_email_to_role(pedido['statusStep']) # pedido['statusStep'] é um inteiro
     pedido_id = postPedido(pedido)
     return {"_id": pedido_id}
 
@@ -83,7 +85,9 @@ def post_pedido(pedido = Body(...)):
 def put_pedido(pedido_id: str, pedido = Body(...)):
     if getPedido(pedido_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado.")
-    res = putPedido(pedido_id, pedido)
+    if pedido['statusStep'] != 6: # Envia um email se não for a ultima etapa
+        send_email_to_role(pedido['statusStep']) # pedido['statusStep'] é um inteiro
+    res = putPedido(pedido_id, pedido) # pedido é um dict
     return {"alterado": res}
 
 

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, APIRouter, status, Request, Body, Response
+from fastapi import Depends, HTTPException, APIRouter, status, Request, Body
 
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, EmailError
@@ -11,6 +11,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from database import db # Importamos a conexão do banco de dados
+from bson.objectid import ObjectId
 
 import os
 
@@ -30,7 +31,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES")
 if not ACCESS_TOKEN_EXPIRE_MINUTES:
     print("\033[93m" + "INFO:" + "\033[0m" + "\t  No ACCESS_TOKEN_EXPIRE_MINUTES available...")
-    ACCESS_TOKEN_EXPIRE_MINUTES = 5 # Padrão de 5 minutos para desenvolvimento
+    ACCESS_TOKEN_EXPIRE_MINUTES = 10 # Padrão de 10 minutos para desenvolvimento
 else:
     try:
         ACCESS_TOKEN_EXPIRE_MINUTES = int(ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -166,7 +167,6 @@ def validate_nome_completo(nome_completo: str):
         )
     nome_completo = " ".join([nome.capitalize() for nome in nome_completo.lower().split(" ")])
     return nome_completo
-    
 
 def corr_roles(role1, role2):
     if role1 == RoleName.admin: # Admin pode tudo
@@ -195,6 +195,11 @@ def get_all_users():
     users = list(collection.find())
     return users
 
+def get_all_users_by_role(role_name: str):
+    if collection.find_one({"role": role_name}) is not None:
+        users_with_specific_role = list(collection.find({"role": role_name}))
+        return users_with_specific_role
+
 def del_user(username: str):
     result = collection.delete_one({"username": username})
     return result.deleted_count
@@ -205,9 +210,20 @@ def update_user(username: str, new_data: dict):
         {'$set': new_data})
     return altered_document
 
+def update_user_by_id(_id: str, new_data: dict):
+    altered_document = collection.find_one_and_update(
+        {"_id": ObjectId(_id)}, 
+        {'$set': new_data})
+    return altered_document
+
 def get_user(username: str):
     if collection.find_one({"username": username}) is not None:
         user_dict = collection.find_one({"username": username})
+        return UserInDB(**user_dict)
+
+def get_user_by_id(_id: str):
+    if collection.find_one({"_id": ObjectId(_id)}) is not None:
+        user_dict = collection.find_one({"_id": ObjectId(_id)})
         return UserInDB(**user_dict)
 
 def insert_new_user_if_not_exist(user: UserInDB):
@@ -229,7 +245,7 @@ def insert_new_user_if_not_exist(user: UserInDB):
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # A autenticação começa aqui. Se tudo der certo, a resposta é do modelo {"token": SEU_TOKEN, "token_type": "bearer"}
-@router.post("/token", response_model=UserWithToken)#, response_model=Token)
+@router.post("/token", response_model=UserWithToken)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()): # Utiliza a dependencia OAuth2PasswordRequestForm, que captura as informacoes no padrao OAuth2 (form-data, etc)
     user = authenticate_user(form_data.username, form_data.password) # Tenta autenticar esse usuario com o usuario e o password. Só funciona se o usuário já existe
     if not user: # A função anterior retorna None se o usuário não existir no banco de dados ou existir e a senha estiver errada
@@ -283,9 +299,8 @@ async def put_user_password(user_to_update: UserAndPasswordForUpdate, current_us
     return altered_document
 
 @router.put("/users/update/general", response_model=User)
-async def put_user_password(user_to_update: User, current_user: User = Depends(get_current_user)):
-    username = validate_email(user_to_update.username)
-    user = get_user(username=username) # Verifica se o usuario que sofrerá modificação existe no banco de dados
+async def put_user_general(user_to_update: UserWithID, current_user: User = Depends(get_current_user)):
+    user = get_user_by_id(_id=user_to_update.id) # Verifica se o usuario que sofrerá modificação existe no banco de dados
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -296,8 +311,9 @@ async def put_user_password(user_to_update: User, current_user: User = Depends(g
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuário não possui permissão para realizar essa alteração"
         )
-    user_to_update = user_to_update.dict()
-    altered_document = update_user(username=username, new_data=user_to_update)
+    user_to_update.username = validate_email(user_to_update.username) # Verifica se o email está válido
+    user_to_update = user_to_update.dict() # Transforma o objeto em um dicionario
+    altered_document = update_user_by_id(_id=user_to_update['id'], new_data=user_to_update) # Atualiza o usuario utilizando o ID
     return altered_document
 
 @router.delete("/users/delete/")
