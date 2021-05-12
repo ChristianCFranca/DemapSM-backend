@@ -1,9 +1,9 @@
 from fastapi import Depends, HTTPException, APIRouter, status, Request, Body
+from starlette.responses import RedirectResponse
 
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, EmailError
 from typing import Optional, List
-from enum import Enum
 
 from datetime import datetime, timedelta # Lidar com a relação de tempo do JWT
 
@@ -12,6 +12,12 @@ from passlib.context import CryptContext
 
 from database import db # Importamos a conexão do banco de dados
 from bson.objectid import ObjectId
+
+import random, string # Para gerar keys de reset de senha aleatorios
+
+from cargos import RoleName
+
+from send_email import SEND_EMAIL, send_email_with_new_password
 
 import os
 
@@ -63,17 +69,13 @@ class UserWithToken(User):
 class UserInDB(User):
     hashed_password: str
 
+class UserInDBWithAlpha(UserInDB):
+    new_requested_password: str
+
 class UserAndPasswordForUpdate(BaseModel):
     username: str
     passwordOld: str
     passwordNew: str
-
-class RoleName(str, Enum):
-    admin = "admin"
-    fiscal = "fiscal"
-    assistente = "assistente"
-    almoxarife = "almoxarife"
-    regular = "regular"
 
 # ---------------------------------------
 
@@ -200,31 +202,55 @@ def get_all_users_by_role(role_name: str):
         users_with_specific_role = list(collection.find({"role": role_name}))
         return users_with_specific_role
 
+def get_user(username: str, as_dict=False):
+    if collection.find_one({"username": username}) is not None:
+        user_dict = collection.find_one({"username": username})
+        if as_dict:
+            return user_dict
+        return UserInDB(**user_dict)
+
+def get_user_by_id(_id: str, with_alpha=False, as_dict=False):
+    if collection.find_one({"_id": ObjectId(_id)}) is not None:
+        user_dict = collection.find_one({"_id": ObjectId(_id)})
+        if as_dict:
+            return user_dict
+        if with_alpha:
+            return UserInDBWithAlpha(**user_dict)
+        return UserInDB(**user_dict)
+
 def del_user(username: str):
     result = collection.delete_one({"username": username})
     return result.deleted_count
 
-def update_user(username: str, new_data: dict):
-    altered_document = collection.find_one_and_update(
-        {"username": username}, 
-        {'$set': new_data})
+def update_user(username: str, new_data: dict, with_unset = False, unset_data: dict = None):
+    if with_unset:
+        if unset_data is None:
+            raise Exception("Se with_unset for true, unset_data deve ser fornecido.")
+        altered_document = collection.find_one_and_update(
+            {"username": username}, 
+            {'$set': new_data}, 
+            {'$unset': unset_data})
+    else:
+        altered_document = collection.find_one_and_update(
+            {"username": username}, 
+            {'$set': new_data})
     return altered_document
 
-def update_user_by_id(_id: str, new_data: dict):
-    altered_document = collection.find_one_and_update(
-        {"_id": ObjectId(_id)}, 
-        {'$set': new_data})
+def update_user_by_id(_id: str, new_data: dict, with_unset = False, unset_data: dict = None):
+    if with_unset:
+        if unset_data is None:
+            raise Exception("Se with_unset for true, unset_data deve ser fornecido.")
+        altered_document = collection.find_one_and_update(
+            {"_id": ObjectId(_id)}, 
+            {'$set': new_data})
+        altered_document = collection.find_one_and_update(
+            {"_id": ObjectId(_id)},
+            {'$unset': unset_data})
+    else:
+        altered_document = collection.find_one_and_update(
+            {"_id": ObjectId(_id)}, 
+            {'$set': new_data})
     return altered_document
-
-def get_user(username: str):
-    if collection.find_one({"username": username}) is not None:
-        user_dict = collection.find_one({"username": username})
-        return UserInDB(**user_dict)
-
-def get_user_by_id(_id: str):
-    if collection.find_one({"_id": ObjectId(_id)}) is not None:
-        user_dict = collection.find_one({"_id": ObjectId(_id)})
-        return UserInDB(**user_dict)
 
 def insert_new_user_if_not_exist(user: UserInDB):
     if get_user(user.username) is not None:
@@ -328,12 +354,12 @@ async def delete_user(username: str, current_user: User = Depends(get_current_us
     user = get_user(username=username)
     if user is None:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuário não existe"
         )
     if not corr_roles(current_user.role, user.role):
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuário não possui permissão para fazer isso"
         )
     del_count = del_user(username=username)
@@ -344,13 +370,53 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
     users = get_all_users()
     if current_user.role == RoleName.regular: # Usuários regulares não podem ver os tipos de usuarios no sistema
         raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Usuário não possui permissão para obter essa informação"
-            )
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuário não possui permissão para obter essa informação"
+        )
     for user in users:
         user['id'] = str(user.pop('_id'))
     return users
 
-@router.get("/users/me")
-async def read_users_me(current_user: User = Depends(get_current_user)):
-    return {"detail": "OK"}
+@router.get("/users/password/request")
+async def reset_password(username: str):
+    username = validate_email(username)
+    user = get_user(username, as_dict=True)
+    if user is None: # Não indica que o usuário não existe, apenas retorna
+        return
+    new_password = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(6)) # Key de 6 caracteres
+    if SEND_EMAIL:
+        send_email_with_new_password(username, user['_id'], new_password)
+
+    alpha_key = get_password_hash(new_password)
+
+    update_user_by_id(_id=user['_id'], new_data={"new_requested_password": alpha_key})
+    return
+
+@router.get("/users/password/reset")
+async def reset_password(user_id: str, alpha_key: str):
+    try:
+        user = get_user_by_id(user_id, with_alpha=True)
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não requisitou troca de senha"
+        )
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não existe"
+        )
+
+    if verify_password(alpha_key, user.new_requested_password): # Ve se as senhas batem
+        update_user_by_id(
+            user_id, 
+            new_data={"hashed_password": user.new_requested_password}, # Vai setar o hashed_password com a nova senha proposta pelo servidor
+            with_unset=True, 
+            unset_data={"new_requested_password": ""} # Retira a key new_requested_password
+            )
+        return RedirectResponse(url="https://demapsm.herokuapp.com/login?passwordReset=success")
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Senha de confirmação nova incorreta"
+        )

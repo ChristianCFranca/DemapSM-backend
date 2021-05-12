@@ -1,11 +1,10 @@
-from fastapi import FastAPI, APIRouter, status, Depends
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
-from bson import ObjectId
 
-from auth import permissions_user_role, RoleName
+from auth import permissions_user_role
+from cargos import RoleName
 
-from cargos import cargo_key, checkKey
-from crud_pedidos import getPedidos, collection
+from crud_pedidos import getPedidos
 
 from io import StringIO
 import pandas as pd
