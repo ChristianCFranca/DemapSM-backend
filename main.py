@@ -1,5 +1,3 @@
-# Utilizado para debugging facilitar o deploy
-import uvicorn
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

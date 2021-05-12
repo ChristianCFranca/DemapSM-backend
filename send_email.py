@@ -15,7 +15,7 @@ STEPS_TO_ROLES = {
     2: RoleName.assistente,
     3: RoleName.fiscal,
     4: RoleName.almoxarife,
-    5: RoleName.assistente
+    5: RoleName.fiscal
 }
 def send_email_to_role(status_step: int):
     role_name = STEPS_TO_ROLES.get(status_step) # Obtem o role responsável por aquele pedido

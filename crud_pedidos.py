@@ -1,12 +1,27 @@
-from fastapi import FastAPI, HTTPException, APIRouter, status, Body, Depends
+from fastapi import HTTPException, APIRouter, status, Body, Depends
 from database import db
 from bson import ObjectId
 
 from auth import permissions_user_role, RoleName
 from send_email import send_email_to_role
 
+import os
+
 COLLECTION = "pedidosdecompra"
 collection = db[COLLECTION]
+
+SEND_EMAIL = os.environ.get("SEND_EMAIL")
+if not SEND_EMAIL:
+    raise Exception("No SEND EMAIL env available...")
+else:
+    try:
+        if SEND_EMAIL.lower() == "true":
+            SEND_EMAIL = True
+        else:
+            SEND_EMAIL = False
+        print("\033[94m"+"INFO:" + "\033[0m" + f"\t  SEND EMAIL environment data available: \033[1m{SEND_EMAIL}\033[0m - Loaded.")
+    except:
+        raise Exception("SEND EMAIL env is available but cannot be casted to boolean...")
 
 # Define nosso router
 router = APIRouter(prefix="/crud/pedidos", tags=["Pedidos de Compra"])
@@ -72,8 +87,9 @@ def get_pedido(pedido_id: str):
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
 def post_pedido(pedido = Body(...)):
-    if pedido['statusStep'] == 2: # Envia um email
+    if pedido['statusStep'] == 2 and SEND_EMAIL: # Envia um email
         send_email_to_role(pedido['statusStep']) # pedido['statusStep'] é um inteiro
+
     pedido_id = postPedido(pedido)
     return {"_id": pedido_id}
 
@@ -85,8 +101,10 @@ def post_pedido(pedido = Body(...)):
 def put_pedido(pedido_id: str, pedido = Body(...)):
     if getPedido(pedido_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado.")
-    if pedido['statusStep'] != 6: # Envia um email se não for a ultima etapa
+
+    if pedido['statusStep'] != 6 and SEND_EMAIL: # Envia um email se não for a ultima etapa
         send_email_to_role(pedido['statusStep']) # pedido['statusStep'] é um inteiro
+
     res = putPedido(pedido_id, pedido) # pedido é um dict
     return {"alterado": res}
 
