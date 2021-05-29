@@ -77,7 +77,7 @@ def post_material(material = Body(...)):
 def put_material(material_id: str, material = Body(...)):
     if getMaterial(material_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Material não encontrado.")
-    res = putmaterial(material_id, material)
+    res = putMaterial(material_id, material)
     return {"alterado": res}
 
 @router.delete("/{material_id}", summary="Delete material", 
