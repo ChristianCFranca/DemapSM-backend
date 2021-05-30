@@ -31,19 +31,19 @@ SECRET_KEY = os.environ.get("SECRET_KEY") # Não deve estar exposto em código
 if not SECRET_KEY:
     raise Exception("No SECRET_KEY available...")
 else:
-    print("\033[94m"+"INFO:" + "\033[0m" + "\t  Secret Key environment data available! Loaded.")
+    print("\033[94m"+"AUTH:" + "\033[0m" + "\t  SECRET KEY environment data available! Loaded.")
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES")
 if not ACCESS_TOKEN_EXPIRE_MINUTES:
-    print("\033[93m" + "INFO:" + "\033[0m" + "\t  No ACCESS_TOKEN_EXPIRE_MINUTES available...")
+    print("\033[93m" + "AUTH:" + "\033[0m" + "\t  No ACCESS_TOKEN_EXPIRE_MINUTES available...")
     ACCESS_TOKEN_EXPIRE_MINUTES = 10 # Padrão de 10 minutos para desenvolvimento
 else:
     try:
         ACCESS_TOKEN_EXPIRE_MINUTES = int(ACCESS_TOKEN_EXPIRE_MINUTES)
-        print("\033[94m"+"INFO:" + "\033[0m" + "\t  Expire Time environment data available! Loaded.")
+        print("\033[94m"+"AUTH:" + "\033[0m" + "\t  EXPIRE TIME environment data available! Loaded.")
     except:
-        print("\033[94m"+"INFO:" + "\033[0m" + "\t  Expire Time environment data was found but could not be casted to an int. Loading base 5 minutes expire.")
+        print("\033[94m"+"AUTH:" + "\033[0m" + "\t  EXPIRE TIME environment data was found but could not be casted to an int. Loading base 5 minutes expire.")
         ACCESS_TOKEN_EXPIRE_MINUTES = 5 # Padrão de 5 minutos para desenvolvimento
 
 # Modelos -------------------------------

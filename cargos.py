@@ -6,3 +6,8 @@ class RoleName(str, Enum):
     assistente = "assistente"
     almoxarife = "almoxarife"
     regular = "regular"
+
+class Departamentos(str, Enum):
+    demap = "demap"
+    engemil = "engemil"
+    almoxarife = "almoxarife"

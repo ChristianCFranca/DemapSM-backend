@@ -1,5 +1,4 @@
-from fastapi import FastAPI, HTTPException, APIRouter, status, Body, Depends
-from typing import List
+from fastapi import HTTPException, APIRouter, status, Body, Depends
 from database import db
 from bson import ObjectId
 
