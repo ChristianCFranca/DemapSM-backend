@@ -356,8 +356,10 @@ async def put_user_general(user_to_update: UserWithIDAndOptionalPassword, curren
         user_to_update['hashed_password'] = password
     else:
         user_to_update = user_to_update.dict() # Transforma o objeto em um dicionario
+    _id = user_to_update['id']
     del user_to_update['password']
-    altered_document = update_user_by_id(_id=user_to_update['id'], new_data=user_to_update) # Atualiza o usuario utilizando o ID
+    del user_to_update['id']
+    altered_document = update_user_by_id(_id=_id, new_data=user_to_update) # Atualiza o usuario utilizando o ID
     return altered_document
 
 @router.delete("/users/delete/")
