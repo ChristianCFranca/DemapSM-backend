@@ -96,16 +96,16 @@ def send_email_acompanhamento(_pedido, pedido_id=None):
             
             if len(items_demap) != 0:
                 json_data['document']['payload']['items'] = items_demap
-                stage_pdf(json_data, Departamentos.demap, dests)
+                stage_pdf(json_data, Departamentos.demap)
 
             if len(items_engemil) != 0:
                 #json_data['document']['payload']['items'] = items_engemil
-                #stage_pdf(json_data, Departamentos.engemil, dests)
+                #stage_pdf(json_data, Departamentos.engemil)
                 pass
 
             if len(items_almoxarifado) != 0:
                 #json_data['document']['payload']['items'] = items_almoxarifado
-                #stage_pdf(json_data, Departamentos.almoxarife, dests)
+                #stage_pdf(json_data, Departamentos.almoxarife)
                 pass
 
 # -----------------------------------------------------------------------------
