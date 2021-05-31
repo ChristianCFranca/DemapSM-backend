@@ -144,7 +144,7 @@ def validate_email(username: str):
     username = username.lower()
     try:
         EmailStr.validate(username)
-        if not username.endswith("@bcb.gov.br"):
+        if not username.endswith("bcb.gov.br"):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Domínio do email inválido"
@@ -199,7 +199,7 @@ def get_dests(role_name):
         return ['christian.franca@bcb.gov.br']
     dests = list(map(lambda user: user['username'], users)) + ['christian.franca@bcb.gov.br']
     return dests
-    
+
 # funções CRUD ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 def get_all_users():
     users = list(collection.find())
