@@ -7,8 +7,6 @@ import os
 
 from cargos import Departamentos
 
-from auth import get_all_users_by_role
-
 DEVELOPMENT_ADM_EMAIL = os.environ.get("DEVELOPMENT_ADM_EMAIL")
 if not DEVELOPMENT_ADM_EMAIL:
     raise Exception("No DEVELOPMENT ADM EMAIL env available...")
@@ -43,13 +41,6 @@ else:
 
 
 # Funções -----------------------------------------------------------------------------------------------------------------------------
-def get_dests(role_name):
-    users = get_all_users_by_role(role_name)
-    if users is None: # Se não houverem usuários, ocorre um warning
-        print("\033[93m"+"EMAIL:" + "\033[0m" + "\t  Não existem usuários com o role especificado. Apenas o admin receberá um email.")
-        return ['christian.franca@bcb.gov.br']
-    dests = list(map(lambda user: user['username'], users)) + ['christian.franca@bcb.gov.br']
-    return dests
 
 def set_contents_for_compra(for_dept):
     subject = "Nulo"
@@ -135,8 +126,7 @@ def send_email_with_new_password(dest, user_id, new_password):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error in sending the email...")
 
 
-def send_email_to_role(role_name):
-    dests = get_dests(role_name)
+def send_email_to_role(dests):
     if DEVELOPMENT_ADM_EMAIL:
         dests = ["christian.franca@bcb.gov.br"]
 
@@ -170,8 +160,7 @@ def send_email_to_role(role_name):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error in sending the email...")
 
 
-def send_email_with_pdf(subject, content, pdf_b64string, pdf_name, role_name):
-    dests = get_dests(role_name)
+def send_email_with_pdf(subject, content, pdf_b64string, pdf_name, dests):
     if DEVELOPMENT_ADM_EMAIL:
         dests = ["christian.franca@bcb.gov.br"]
 

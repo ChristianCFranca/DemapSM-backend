@@ -192,6 +192,14 @@ def permissions_user_role(approved_roles: List[str]): # Função que retorna out
         return user
     return permission_ur
 
+def get_dests(role_name):
+    users = get_all_users_by_role(role_name)
+    if users is None: # Se não houverem usuários, ocorre um warning
+        print("\033[93m"+"EMAIL:" + "\033[0m" + "\t  Não existem usuários com o role especificado. Apenas o admin receberá um email.")
+        return ['christian.franca@bcb.gov.br']
+    dests = list(map(lambda user: user['username'], users)) + ['christian.franca@bcb.gov.br']
+    return dests
+    
 # funções CRUD ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 def get_all_users():
     users = list(collection.find())
