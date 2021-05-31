@@ -354,9 +354,9 @@ async def put_user_general(user_to_update: UserWithIDAndOptionalPassword, curren
         password = get_password_hash(user_to_update.password)
         user_to_update = user_to_update.dict()
         user_to_update['hashed_password'] = password
-        del user_to_update['password']
     else:
         user_to_update = user_to_update.dict() # Transforma o objeto em um dicionario
+    del user_to_update['password']
     altered_document = update_user_by_id(_id=user_to_update['id'], new_data=user_to_update) # Atualiza o usuario utilizando o ID
     return altered_document
 
