@@ -8,6 +8,8 @@ from send_email import SEND_EMAIL, set_contents_for_compra, send_email_with_pdf
 from cargos import Departamentos
 from auth import get_all_users_by_role
 
+import json
+
 # Define nosso router
 router = APIRouter(prefix="/pdf", tags=["Setar Continuidade no envio do PDF"])
 
@@ -50,7 +52,7 @@ async def post_staged_pdf_info(data: dict = Body(...)):
     template_id = data['document']['document_template_id']
     departamento = DEPARTAMENTO_TO_TEMPLATES[template_id]
 
-    pedido_id = data['document']['payload']['_id']
+    pedido_id = json.loads(data['document']['payload'])['_id']
     pdf_name = f"pedido_de_compra_{pedido_id}.pdf"
 
     users = get_all_users_by_role("fiscal")
