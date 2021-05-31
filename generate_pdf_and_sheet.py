@@ -21,7 +21,7 @@ BASE_URL = "https://api.pdfmonkey.io/api/v1/documents/"
 AUTH_HEADER = {"Authorization": f"Bearer {PDFMONKEY_API_KEY}"}
 
 TEMPLATES_FOR_DEPARTAMENTO = {
-    Departamentos.demap: "BFDE2B7D-4255-4ACA-9525-0209F55C0CFC"
+    Departamentos.demap: "BFDE2B7D-4255-4ACA-9525-0209F55C0CFC".lower()
 }
 DEPARTAMENTO_TO_TEMPLATES = {value : key for key, value in TEMPLATES_FOR_DEPARTAMENTO.items()}
 
