@@ -18,12 +18,6 @@ STEPS_TO_ROLES = {
     5: RoleName.fiscal
 }
 
-TEMPLATES_FOR_DEPARTAMENTO = {
-    Departamentos.demap: "BFDE2B7D-4255-4ACA-9525-0209F55C0CFC",
-    Departamentos.engemil: "BFDE2B7D-4255-4ACA-9525-0209F55C0CFC",
-    Departamentos.almoxarife: "BFDE2B7D-4255-4ACA-9525-0209F55C0CFC"
-}
-
 # Define nosso router
 router = APIRouter(prefix="/crud/pedidos", tags=["Pedidos de Compra"])
 
@@ -101,18 +95,15 @@ def send_email_acompanhamento(_pedido, pedido_id=None):
                 return
             
             if len(items_demap) != 0:
-                json_data['document']['document_template_id'] = TEMPLATES_FOR_DEPARTAMENTO[Departamentos.demap]
                 json_data['document']['payload']['items'] = items_demap
                 stage_pdf(json_data, Departamentos.demap, dests)
 
             if len(items_engemil) != 0:
-                #json_data['document']['document_template_id'] = TEMPLATES_FOR_DEPARTAMENTO[Departamentos.engemil]
                 #json_data['document']['payload']['items'] = items_engemil
                 #stage_pdf(json_data, Departamentos.engemil, dests)
                 pass
 
             if len(items_almoxarifado) != 0:
-                #json_data['document']['document_template_id'] = TEMPLATES_FOR_DEPARTAMENTO[Departamentos.almoxarife]
                 #json_data['document']['payload']['items'] = items_almoxarifado
                 #stage_pdf(json_data, Departamentos.almoxarife, dests)
                 pass

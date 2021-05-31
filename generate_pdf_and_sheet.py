@@ -5,6 +5,8 @@ import requests
 import base64
 import os
 from send_email import SEND_EMAIL, set_contents_for_compra, send_email_with_pdf
+from cargos import Departamentos
+from auth import get_all_users_by_role
 
 # Define nosso router
 router = APIRouter(prefix="/pdf", tags=["Setar Continuidade no envio do PDF"])
@@ -18,38 +20,16 @@ else:
 BASE_URL = "https://api.pdfmonkey.io/api/v1/documents/"
 AUTH_HEADER = {"Authorization": f"Bearer {PDFMONKEY_API_KEY}"}
 
-class PDFController():
-    def __init__(self):
-        self.staged_pdf_id = None
-        self.dept = None
-        self.pdf_name = None
-        self.dests = None
-    
-    def stage_pdf(self, pdf_id, departamento, pdf_name, dests):
-        self.staged_pdf_id = pdf_id
-        self.dept = departamento
-        self.pdf_name = pdf_name
-        self.dests = dests
+TEMPLATES_FOR_DEPARTAMENTO = {
+    Departamentos.demap: "BFDE2B7D-4255-4ACA-9525-0209F55C0CFC"
+}
+DEPARTAMENTO_TO_TEMPLATES = {value : key for key, value in TEMPLATES_FOR_DEPARTAMENTO.items()}
 
-    def unstage_pdf(self):
-        self.staged_pdf_id = None
-        self.dept = None
-        self.pdf_name = None
-        self.dests = None
-
-    def is_staged(self):
-        return self.staged_pdf_id is not None
-
-pdf_controller = PDFController()
-
-def stage_pdf(json_data, departamento, dests):
-    pdf_name = json_data['document']['meta']['_filename']
+def stage_pdf(json_data, departamento):
+    json_data['document']['document_template_id'] = TEMPLATES_FOR_DEPARTAMENTO[departamento]
     for counter in range(10, 0, -1):
         response = requests.post(BASE_URL, json=json_data, headers=AUTH_HEADER)
         if response.status_code == 201 or response.status_code == 200:
-            json_response = response.json()
-            document_id = json_response['document']['id']
-            pdf_controller.stage_pdf(pdf_id=document_id, departamento=departamento, pdf_name=pdf_name, dests=dests)
             print("\033[94mPDF:\033[0m" + "\t  PDF postado com sucesso.")
             return
         else:
@@ -59,20 +39,22 @@ def stage_pdf(json_data, departamento, dests):
 
 @router.post("/webhook", summary="Recebe o sinal de geração finalizada do pdf")
 async def post_staged_pdf_info(data: dict = Body(...)):
+    print("\033[94mPDF:\033[0m" + "\t  PDF gerado detectado.")
     if not SEND_EMAIL:
+        print("\033[94mPDF:\033[0m" + "\t  Envio de PDF's desativado.")
         raise HTTPException(status_code=status_code.HTTP_200_OK)
 
     if 'document' not in data:
         raise HTTPException(status_code=status_code.HTTP_400_BAD_REQUEST, detail="Document data not present")
 
-    if not pdf_controller.is_staged():
-        print("\033[94mPDF:\033[0m" + "\t  Nenhum PDF não está registrado para stage no momento.")
-        raise HTTPException(status_code=status_code.HTTP_200_OK)
+    template_id = data['document']['document_template_id']
+    departamento = DEPARTAMENTO_TO_TEMPLATES[template_id]
 
-    staged_pdf_id = data['document']['id']
-    if staged_pdf_id != pdf_controller.staged_pdf_id:
-        print("\033[94mPDF:\033[0m" + "\t  Este PDF específico não está registrado para stage no momento.")
-        raise HTTPException(status_code=status_code.HTTP_200_OK)
+    pedido_id = data['document']['payload']['_id']
+    pdf_name = f"pedido_de_compra_{pedido_id}.pdf"
+
+    users = get_all_users_by_role("fiscal")
+    dests = list(map(lambda user: user['username'], users))
 
     download_url = data['document']['download_url']
     pdf_b64string = None
@@ -88,10 +70,8 @@ async def post_staged_pdf_info(data: dict = Body(...)):
     if not pdf_b64string:
         raise HTTPException(status_code=status_code.HTTP_400_BAD_REQUEST, detail="\'download_url\' not working")
 
-    subject, content = set_contents_for_compra(pdf_controller.dept)
+    subject, content = set_contents_for_compra(departamento)
     print("\033[94mPDF:\033[0m" + "\t  Enviando...")
-    send_email_with_pdf(subject, content, pdf_b64string, pdf_controller.pdf_name, pdf_controller.dests)
-
-    pdf_controller.unstage_pdf()
+    send_email_with_pdf(subject, content, pdf_b64string, pdf_name, dests)
 
     return
