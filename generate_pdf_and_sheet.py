@@ -6,7 +6,6 @@ import base64
 import os
 from send_email import SEND_EMAIL, set_contents_for_compra, send_email_with_pdf
 from cargos import Departamentos
-from auth import get_all_users_by_role
 
 import json
 
@@ -55,9 +54,6 @@ async def post_staged_pdf_info(data: dict = Body(...)):
     pedido_id = json.loads(data['document']['payload'])['_id']
     pdf_name = f"pedido_de_compra_{pedido_id}.pdf"
 
-    users = get_all_users_by_role("fiscal")
-    dests = list(map(lambda user: user['username'], users))
-
     download_url = data['document']['download_url']
     pdf_b64string = None
     for counter in range(10, 0, -1):
@@ -74,6 +70,6 @@ async def post_staged_pdf_info(data: dict = Body(...)):
 
     subject, content = set_contents_for_compra(departamento)
     print("\033[94mPDF:\033[0m" + "\t  Enviando...")
-    send_email_with_pdf(subject, content, pdf_b64string, pdf_name, dests)
+    send_email_with_pdf(subject=subject, content=content, pdf_b64string=pdf_b64string, pdf_name=pdf_name, role_name="fiscal")
 
     return

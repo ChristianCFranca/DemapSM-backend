@@ -2,7 +2,7 @@ from fastapi import HTTPException, APIRouter, status, Body, Depends
 from database import db
 from bson import ObjectId
 
-from auth import permissions_user_role, get_all_users_by_role
+from auth import permissions_user_role
 from cargos import RoleName, Departamentos
 from send_email import SEND_EMAIL, send_email_to_role
 
@@ -63,14 +63,9 @@ def send_email_acompanhamento(_pedido, pedido_id=None):
         if role_name is None:
             print("\033[93m"+"EMAIL:" + "\033[0m" + "\t  Não foi possível obter o role responsável pela etapa em questão.")
             return
-        users_with_specific_role = get_all_users_by_role(role_name)
-        if users_with_specific_role is None: # Se não houverem usuários, ocorre um warning e não envia emails
-            print("\033[93m"+"EMAIL:" + "\033[0m" + "\t  Não existem usuários com o role especificado. Nenhum email será enviado.")
-            return
-        dests = list(map(lambda user: user['username'], users_with_specific_role))  # Obtem todos os emails dos usuarios com o role especificado
 
         if status_step <= 4: # Emails apenas para notificação
-            send_email_to_role(dests)
+            send_email_to_role(role_name=role_name)
 
         else: # Etapa 5 é email de attachment
             json_data = {
