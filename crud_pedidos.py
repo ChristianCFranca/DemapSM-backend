@@ -85,27 +85,37 @@ def send_email_acompanhamento(_pedido, pedido_id=None):
                     "meta": {
                         "_filename": f"pedido_de_compra_{pedido['_id']}.pdf"
                     },
-                    "payload": {key: value for key, value in pedido.items() if key != "items"},
+                    "payload": pedido,
                     "status": "pending"
                 }
             }
-            for item in pedido['items']:
-                departamento = None
-                if item['almoxarifadoPossui']: # Se o almoxarifado não possuir, a engemil ou o demap devem realizar a compra
-                    departamento = Departamentos.almoxarife
-                elif item['direcionamentoDeCompra'].lower() == "demap":
-                    departamento = Departamentos.demap
-                elif item['direcionamentoDeCompra'].lower() == "engemil":
-                    departamento = Departamentos.engemil
-                else:
-                    print("\033[93m"+"PDF:" + "\033[0m" + "\t  Almoxarifado não possui porém o direcionamento de compra não consta como \'Demap\' ou \'Engemil\'. Nenhum email será enviado.")
-                    return
+             # Os itens são filtrados pela aprovação do fiscal, o que significa que eles foram aprovados para serem comprados ou retirados
+            json_data['document']['payload']['items'] = [item for item in pedido['items'] if item['aprovadoFiscal']]
 
-                for key in item: # item é um dict
-                    json_data['document']['payload'][key] = item[key]
+            items_demap = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == "demap" and not item['almoxarifadoPossui'], json_data['document']['payload']['items']))
+            items_engemil = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == "engemil" and not item['almoxarifadoPossui'], json_data['document']['payload']['items']))
+            items_almoxarifado = list(filter(lambda item: item['almoxarifadoPossui'], json_data['document']['payload']['items']))
+            
+            if len(items_demap) == 0 and len(items_engemil) == 0 and len(items_almoxarifado) == 0:
+                print("\033[93m"+"PDF:" + "\033[0m" + "\t  Almoxarifado não possui o item e o direcionamento de compra não consta como \'Demap\' ou \'Engemil\'. Nenhum email será enviado.")
+                return
+            
+            if len(items_demap) != 0:
+                json_data['document']['document_template_id'] = TEMPLATES_FOR_DEPARTAMENTO[Departamentos.demap]
+                json_data['document']['payload']['items'] = items_demap
+                stage_pdf(json_data, Departamentos.demap, dests)
 
-                json_data['document']["document_template_id"] = TEMPLATES_FOR_DEPARTAMENTO[departamento]
-                stage_pdf(json_data, departamento, dests)
+            if len(items_engemil) != 0:
+                #json_data['document']['document_template_id'] = TEMPLATES_FOR_DEPARTAMENTO[Departamentos.engemil]
+                #json_data['document']['payload']['items'] = items_engemil
+                #stage_pdf(json_data, Departamentos.engemil, dests)
+                pass
+
+            if len(items_almoxarifado) != 0:
+                #json_data['document']['document_template_id'] = TEMPLATES_FOR_DEPARTAMENTO[Departamentos.almoxarife]
+                #json_data['document']['payload']['items'] = items_almoxarifado
+                #stage_pdf(json_data, Departamentos.almoxarife, dests)
+                pass
 
 # -----------------------------------------------------------------------------
 

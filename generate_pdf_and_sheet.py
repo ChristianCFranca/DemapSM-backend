@@ -1,4 +1,3 @@
-from auth import del_user
 from fastapi import status as status_code
 from fastapi import APIRouter, Body
 from fastapi.exceptions import HTTPException
@@ -55,7 +54,7 @@ def stage_pdf(json_data, departamento, dests):
             return
         else:
             print("\033[93mPDF:\033[0m" + f"\t  Não foi possível postar o PDF. Tentando novamente... Tentativas restantes: {counter}")
-    raise Exception("Não foi possível postar a criação do PDF.")
+    raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Não foi possível postar a criação do PDF.")
 
 
 @router.post("/webhook", summary="Recebe o sinal de geração finalizada do pdf")
@@ -90,7 +89,7 @@ async def post_staged_pdf_info(data: dict = Body(...)):
         raise HTTPException(status_code=status_code.HTTP_400_BAD_REQUEST, detail="\'download_url\' not working")
 
     subject, content = set_contents_for_compra(pdf_controller.dept)
-
+    print("\033[94mPDF:\033[0m" + "\t  Enviando...")
     send_email_with_pdf(subject, content, pdf_b64string, pdf_controller.pdf_name, pdf_controller.dests)
 
     pdf_controller.unstage_pdf()
