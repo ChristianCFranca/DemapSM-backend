@@ -69,6 +69,10 @@ class UserWithToken(User):
 class UserInDB(User):
     hashed_password: str
 
+class UserWithIDAndOptionalPassword(User):
+    id: str
+    password: Optional[str] = None
+
 class UserInDBWithAlpha(UserInDB):
     new_requested_password: str
 
@@ -333,7 +337,7 @@ async def put_user_password(user_to_update: UserAndPasswordForUpdate, current_us
     return altered_document
 
 @router.put("/users/update/general", response_model=User)
-async def put_user_general(user_to_update: UserWithID, current_user: User = Depends(get_current_user)):
+async def put_user_general(user_to_update: UserWithIDAndOptionalPassword, current_user: User = Depends(get_current_user)):
     user = get_user_by_id(_id=user_to_update.id) # Verifica se o usuario que sofrerá modificação existe no banco de dados
     if user is None:
         raise HTTPException(
@@ -346,13 +350,13 @@ async def put_user_general(user_to_update: UserWithID, current_user: User = Depe
             detail="Usuário não possui permissão para realizar essa alteração"
         )
     user_to_update.username = validate_email(user_to_update.username) # Verifica se o email está válido
-    user = get_user(username=user_to_update.username)
-    if user is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Usuário já existe"
-        )
-    user_to_update = user_to_update.dict() # Transforma o objeto em um dicionario
+    if user_to_update.password is not None:
+        password = get_password_hash(user_to_update.password)
+        user_to_update = user_to_update.dict()
+        user_to_update['hashed_password'] = password
+        del user_to_update['password']
+    else:
+        user_to_update = user_to_update.dict() # Transforma o objeto em um dicionario
     altered_document = update_user_by_id(_id=user_to_update['id'], new_data=user_to_update) # Atualiza o usuario utilizando o ID
     return altered_document
 
