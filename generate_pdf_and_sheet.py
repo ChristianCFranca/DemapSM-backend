@@ -4,16 +4,11 @@ from fastapi.exceptions import HTTPException
 import requests
 import base64
 import os
-os.system('export LC_ALL="C"')
-
 from send_email import SEND_EMAIL, set_contents_for_compra, send_email_with_pdf, send_email_with_xlsx
 from cargos import Departamentos
 from auth import get_dests
 from openpyxl import load_workbook
 from tempfile import NamedTemporaryFile
-import locale
-locale.setlocale(locale.LC_MONETARY, 'pt_BR.UTF-8')
-
 import json
 
 # Define nosso router
@@ -41,6 +36,10 @@ class EngemilHandlerXLS():
         self.sheet = self.wb.active
         self.pedido = None
         
+    def fmt_far(self, number):
+        fmt_nbr = "{:,.2f}".format(number)
+        return fmt_nbr.replace(',', 'a').format('.', ',').format('a', '.')
+
     def set_pedido(self, pedido):
         self.pedido = pedido.copy()
         
@@ -61,11 +60,11 @@ class EngemilHandlerXLS():
             self.sheet[f"B{i+9}"] = item['nome']
             self.sheet[f"F{i+9}"] = item['unidade']
             self.sheet[f"G{i+9}"] = item['quantidade']
-            self.sheet[f"H{i+9}"] = locale.currency(float(item['valorUnitario']), grouping=True)
-            self.sheet[f"J{i+9}"] = locale.currency(float(item['valorTotal']), grouping=True)
+            self.sheet[f"H{i+9}"] = self.fmt_far(float(item['valorUnitario']))
+            self.sheet[f"J{i+9}"] = self.fmt_far(float(item['valorTotal']))
         # Soma total
 
-        self.sheet[f"J16"] = locale.currency(sum([float(item['valorTotal']) for item in self.pedido['items']]), grouping=True)
+        self.sheet[f"J16"] = self.fmt_far(sum([float(item['valorTotal']) for item in self.pedido['items']]))
         
     def set_finalidade(self):
         self.sheet['A20'] = self.pedido['items'][0]['finalidade']
