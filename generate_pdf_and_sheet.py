@@ -67,7 +67,7 @@ class EngemilHandlerXLS():
         self.sheet[f"J16"] = self.fmt_far(sum([float(item['valorTotal']) for item in self.pedido['items']]))
         
     def set_finalidade(self):
-        self.sheet['A20'] = self.pedido['items'][0]['finalidade']
+        self.sheet['A20'] = self.pedido['finalidade']
     
     def set_obs(self):
         self.sheet['A24'] = f"Para atendimento da OS {self.pedido['os']}"
