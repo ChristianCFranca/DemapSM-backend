@@ -50,7 +50,7 @@ def set_contents_for_compra(for_dept):
         content="""
         <div>
             <div>
-                Um novo pedido de compra foi liberado para compra com cartão corporativo!
+                Um novo pedido de compra foi liberado para compra com <b>cartão corporativo</b>!
             </div>
             <br>
             <div>
@@ -76,11 +76,11 @@ def set_contents_for_compra(for_dept):
         content="""
         <div>
             <div>
-                Um novo pedido de compra foi liberado para compra com cartão corporativo!
+                Um novo pedido de compra foi liberado para compra pela <b>ENGEMIL</b>!
             </div>
             <br>
             <div>
-                O pdf em anexo contém as informações necessárias.
+                As planilhas em anexo contém as informações necessárias.
             </div>
         </div>
         """
@@ -179,6 +179,34 @@ def send_email_with_pdf(subject, content, pdf_b64string, pdf_name, dests):
     )
 
     message.attachment = attached_pdf
+
+    try:
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        response = sg.send(message)
+        print("\033[94m"+"EMAIL:" + "\033[0m" + f"\t  Email sent successfully \033[94m {response.status_code} Accepted\033[0m")
+    except Exception:
+        print("\033[91m"+"EMAIL:" + "\033[0m" + "\t  Ocorreu um erro ao enviar o email.")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ocorreu um erro ao enviar o email de notificação com o pdf")
+
+def send_email_with_xlsx(subject, content, xlsx_b64, xlsx_name, dests):
+    if DEVELOPMENT_ADM_EMAIL:
+        dests = ["christian.franca@bcb.gov.br"]
+
+    message = Mail(
+        from_email="smdemap@gmail.com",
+        to_emails=dests,
+        subject=subject,
+        html_content=content
+    )
+    
+    attached_xlsx = Attachment (
+        file_content=FileContent(xlsx_b64),
+        file_name=FileName(xlsx_name),
+        file_type=FileType('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+        disposition=Disposition('attachment')
+    )
+
+    message.attachment = attached_xlsx
 
     try:
         sg = SendGridAPIClient(SENDGRID_API_KEY)

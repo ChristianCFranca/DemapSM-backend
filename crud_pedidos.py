@@ -6,7 +6,7 @@ from auth import permissions_user_role, get_dests
 from cargos import RoleName, Departamentos
 from send_email import SEND_EMAIL, send_email_to_role
 
-from generate_pdf_and_sheet import stage_pdf
+from generate_pdf_and_sheet import stage_pdf, stage_xlsx
 
 COLLECTION = "pedidosdecompra"
 collection = db[COLLECTION]
@@ -90,16 +90,15 @@ def send_email_acompanhamento(_pedido, pedido_id=None):
                 print("\033[93m"+"PDF:" + "\033[0m" + "\t  Almoxarifado não possui o item e o direcionamento de compra não consta como \'Demap\' ou \'Engemil\'. Nenhum email será enviado.")
                 return
             
-            if len(items_demap) != 0:
+            if len(items_engemil) > 0:
+                pedido['items'] = items_engemil
+                stage_xlsx(pedido, Departamentos.engemil)
+
+            if len(items_demap) > 0:
                 json_data['document']['payload']['items'] = items_demap
                 stage_pdf(json_data, Departamentos.demap)
 
-            if len(items_engemil) != 0:
-                #json_data['document']['payload']['items'] = items_engemil
-                #stage_pdf(json_data, Departamentos.engemil)
-                pass
-
-            if len(items_almoxarifado) != 0:
+            if len(items_almoxarifado) > 0:
                 #json_data['document']['payload']['items'] = items_almoxarifado
                 #stage_pdf(json_data, Departamentos.almoxarife)
                 pass

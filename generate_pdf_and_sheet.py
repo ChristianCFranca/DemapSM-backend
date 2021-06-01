@@ -4,9 +4,13 @@ from fastapi.exceptions import HTTPException
 import requests
 import base64
 import os
-from send_email import SEND_EMAIL, set_contents_for_compra, send_email_with_pdf
+from send_email import SEND_EMAIL, set_contents_for_compra, send_email_with_pdf, send_email_with_xlsx
 from cargos import Departamentos
-from auth import get_all_users_by_role, get_dests
+from auth import get_dests
+from openpyxl import load_workbook
+from tempfile import NamedTemporaryFile
+import locale
+locale.setlocale(locale.LC_MONETARY, 'pt_BR.UTF-8')
 
 import json
 
@@ -27,6 +31,79 @@ TEMPLATES_FOR_DEPARTAMENTO = {
 }
 DEPARTAMENTO_TO_TEMPLATES = {value : key for key, value in TEMPLATES_FOR_DEPARTAMENTO.items()}
 
+# Classe para lidar com a abertura do arquivo xlsx base da engemil
+class EngemilHandlerXLS():
+    def __init__(self, filename):
+        self.filename = filename
+        self.wb = load_workbook(filename)
+        self.sheet = self.wb.active
+        self.pedido = None
+        
+    def set_pedido(self, pedido):
+        self.pedido = pedido.copy()
+        
+    def set_data(self):
+        self.sheet['G2'] = self.pedido['dataAprovacaoAlmoxarife']
+        
+    def set_numero(self):
+        self.sheet['J2'] = self.pedido['_id']
+    
+    def set_responsavel(self):
+        self.sheet['E6'] = f"{self.pedido['fiscal']} - {self.pedido['emailFiscal']}"
+    
+    def set_items(self):
+        for i, item in enumerate(self.pedido['items']):
+            # Começa A9
+            self.sheet[f"A{i+9}"] = i + 1
+            #self.sheet[f"B12"] = item.codigoDilog
+            self.sheet[f"B{i+9}"] = item['nome']
+            self.sheet[f"F{i+9}"] = item['unidade']
+            self.sheet[f"G{i+9}"] = item['quantidade']
+            self.sheet[f"H{i+9}"] = locale.currency(float(item['valorUnitario']), grouping=True)
+            self.sheet[f"J{i+9}"] = locale.currency(float(item['valorTotal']), grouping=True)
+        # Soma total
+
+        self.sheet[f"J16"] = locale.currency(sum([float(item['valorTotal']) for item in self.pedido['items']]), grouping=True)
+        
+    def set_finalidade(self):
+        self.sheet['A20'] = self.pedido['items'][0]['finalidade']
+    
+    def set_obs(self):
+        self.sheet['A24'] = f"Para atendimento da OS {self.pedido['os']}"
+    
+    def set_assinatura(self):
+        self.sheet['G20'] = f"Sistema Demap SM\nFiscal: {self.pedido['fiscal']}\nE-mail: {self.pedido['emailFiscal']}\nautorizado em {self.pedido['dataAprovacaoFiscal']}\nàs {self.pedido['horarioAprovacaoFiscal']}"
+    
+    def set_final_sheet(self):
+        self.set_numero()
+        self.set_data()
+        self.set_responsavel()
+        self.set_items()
+        self.set_finalidade()
+        self.set_obs()
+        self.set_assinatura()
+    
+    def get_b64_file(self):
+        with NamedTemporaryFile() as tmp:
+            self.wb.save(tmp)
+            tmp.seek(0)
+            stream = tmp.read()
+        return base64.b64encode(stream).decode()
+    
+    def get_filename(self):
+        return f"pedido_de_compra_{self.pedido['_id']}.xlsx"
+
+    def unset_pedido(self):
+        self.pedido = None
+
+PATH_ENGEMIL_XLSX = "noncode/engemil_base.xlsx"
+if not os.path.exists(PATH_ENGEMIL_XLSX):
+    raise Exception("Arquivo engemil_base.xlsx não está no diretório previsto.")
+
+engemil_xls = EngemilHandlerXLS(PATH_ENGEMIL_XLSX)
+
+# Funções --------------------------------------------------------------------------------------------------------------------------------
+
 def stage_pdf(json_data, departamento):
     json_data['document']['document_template_id'] = TEMPLATES_FOR_DEPARTAMENTO[departamento]
     for counter in range(10, 0, -1):
@@ -38,6 +115,19 @@ def stage_pdf(json_data, departamento):
             print("\033[93mPDF:\033[0m" + f"\t  Não foi possível postar o PDF. Tentando novamente... Tentativas restantes: {counter}")
     raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Não foi possível postar a criação do PDF.")
 
+
+def stage_xlsx(pedido, dept):
+    engemil_xls.set_pedido(pedido)
+    engemil_xls.set_final_sheet()
+    xlsx_b64 = engemil_xls.get_b64_file()
+    xlsx_name = engemil_xls.get_filename()
+    dests = get_dests(role_name="fiscal")
+    dests += ['ricardo.furtuoso@bcb.gov.br']
+    subject, content = set_contents_for_compra(dept)
+    send_email_with_xlsx(subject, content, xlsx_b64, xlsx_name, dests)
+    engemil_xls.unset_pedido()
+
+# Rota -----------------------------------------------------------------------------------------------------------------------------------
 
 @router.post("/webhook", summary="Recebe o sinal de geração finalizada do pdf")
 async def post_staged_pdf_info(data: dict = Body(...)):
