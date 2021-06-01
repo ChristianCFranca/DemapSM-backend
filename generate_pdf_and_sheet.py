@@ -4,14 +4,14 @@ from fastapi.exceptions import HTTPException
 import requests
 import base64
 import os
+os.system('export LC_ALL="C"')
+
 from send_email import SEND_EMAIL, set_contents_for_compra, send_email_with_pdf, send_email_with_xlsx
 from cargos import Departamentos
 from auth import get_dests
 from openpyxl import load_workbook
 from tempfile import NamedTemporaryFile
 import locale
-
-os.system("export LC_ALL=C")
 locale.setlocale(locale.LC_MONETARY, 'pt_BR.UTF-8')
 
 import json
