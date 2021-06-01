@@ -59,11 +59,11 @@ def set_contents_for_compra(for_dept):
         </div>
         """
     elif for_dept == Departamentos.almoxarife:
-        subject = "Um item foi liberado para retirada em ALMOXARIFE"
+        subject = "Um novo pedido foi liberado para retirada de itens no ALMOXARIFE"
         content="""
         <div>
             <div>
-                Um novo pedido de compra foi liberado para compra com cartão corporativo!
+                Um novo pedido de compra teve seus itens liberados para retirada no ALMOXARIFE.
             </div>
             <br>
             <div>

@@ -99,8 +99,8 @@ def send_email_acompanhamento(_pedido, pedido_id=None):
                 stage_pdf(json_data, Departamentos.demap)
 
             if len(items_almoxarifado) > 0:
-                #json_data['document']['payload']['items'] = items_almoxarifado
-                #stage_pdf(json_data, Departamentos.almoxarife)
+                json_data['document']['payload']['items'] = items_almoxarifado
+                stage_pdf(json_data, Departamentos.almoxarife)
                 pass
 
 # -----------------------------------------------------------------------------

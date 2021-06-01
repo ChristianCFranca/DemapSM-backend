@@ -24,7 +24,8 @@ BASE_URL = "https://api.pdfmonkey.io/api/v1/documents/"
 AUTH_HEADER = {"Authorization": f"Bearer {PDFMONKEY_API_KEY}"}
 
 TEMPLATES_FOR_DEPARTAMENTO = {
-    Departamentos.demap: "BFDE2B7D-4255-4ACA-9525-0209F55C0CFC".lower()
+    Departamentos.demap: "BFDE2B7D-4255-4ACA-9525-0209F55C0CFC".lower(),
+    Departamentos.almoxarife: "91C4B381-8608-4782-86B5-A8F92DE672BA".lower()
 }
 DEPARTAMENTO_TO_TEMPLATES = {value : key for key, value in TEMPLATES_FOR_DEPARTAMENTO.items()}
 
@@ -110,7 +111,7 @@ def stage_pdf(json_data, departamento):
     for counter in range(10, 0, -1):
         response = requests.post(BASE_URL, json=json_data, headers=AUTH_HEADER)
         if response.status_code == 201 or response.status_code == 200:
-            print("\033[94mPDF:\033[0m" + "\t  PDF postado com sucesso.")
+            print("\033[94mPDF:\033[0m" + f"\t  PDF postado para {departamento} com sucesso.")
             return
         else:
             print("\033[93mPDF:\033[0m" + f"\t  Não foi possível postar o PDF. Tentando novamente... Tentativas restantes: {counter}")
@@ -147,6 +148,8 @@ async def post_staged_pdf_info(data: dict = Body(...)):
     pdf_name = f"pedido_de_compra_{pedido_id}.pdf"
 
     dests = get_dests(role_name="fiscal")
+    if departamento == Departamentos.almoxarife:
+        dests += ['ricardo.furtuoso@bcb.gov.br']
 
     download_url = data['document']['download_url']
     pdf_b64string = None
