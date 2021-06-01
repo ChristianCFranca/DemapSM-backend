@@ -10,6 +10,8 @@ from auth import get_dests
 from openpyxl import load_workbook
 from tempfile import NamedTemporaryFile
 import locale
+
+os.system("export LC_ALL=C")
 locale.setlocale(locale.LC_MONETARY, 'pt_BR.UTF-8')
 
 import json
