@@ -38,7 +38,7 @@ class EngemilHandlerXLS():
         
     def fmt_far(self, number):
         fmt_nbr = "{:,.2f}".format(number)
-        return fmt_nbr.replace(',', 'a').replace('.', ',').replace('a', '.')
+        return "R$ " + fmt_nbr.replace(',', 'a').replace('.', ',').replace('a', '.')
 
     def set_pedido(self, pedido):
         self.pedido = pedido.copy()
