@@ -42,28 +42,31 @@ else:
 
 # Funções -----------------------------------------------------------------------------------------------------------------------------
 
-def set_contents_for_compra(for_dept):
+def set_contents_for_compra(for_dept, pedido_id):
     subject = "Nulo"
     content = "Nulo"
     if for_dept == Departamentos.demap:
-        subject = "Um novo pedido de compra foi liberado para DEMAP"
-        content="""
+        subject = f"Pedido de compra n°{pedido_id} foi liberado para DEMAP"
+        content=f"""
         <div>
             <div>
-                Um novo pedido de compra foi liberado para compra com <b>cartão corporativo</b>!
+                O pedido de compra n°{pedido_id} foi liberado para compra utilizando <b>cartão corporativo</b>.
             </div>
             <br>
             <div>
                 O pdf em anexo contém as informações necessárias.
             </div>
+            <div>
+                Após a compra, lembrar de inserir os valores gastos na plataforma <a href=\"https://demapsm.herokuapp.com/andamentos/\">Demap SM</a>.
+            </div>
         </div>
         """
     elif for_dept == Departamentos.almoxarife:
-        subject = "Um novo pedido foi liberado para retirada de itens no ALMOXARIFE"
-        content="""
+        subject = f"Pedido de compra n°{pedido_id} liberado para retirada no ALMOXARIFE"
+        content=f"""
         <div>
             <div>
-                Um novo pedido de compra teve seus itens liberados para retirada no ALMOXARIFE.
+                O pedido de compra n°{pedido_id} foi liberado para retirada no <b>ALMOXARIFE</b>.
             </div>
             <br>
             <div>
@@ -72,15 +75,18 @@ def set_contents_for_compra(for_dept):
         </div>
         """
     elif for_dept == Departamentos.engemil:
-        subject = "Um novo pedido de compra foi liberado para ENGEMIL"
-        content="""
+        subject = f"Pedido de compra n°{pedido_id} foi liberado para ENGEMIL"
+        content=f"""
         <div>
             <div>
-                Um novo pedido de compra foi liberado para compra pela <b>ENGEMIL</b>!
+                O pedido de compra n°{pedido_id} foi liberado para compra pela <b>ENGEMIL</b>.
             </div>
             <br>
             <div>
-                As planilhas em anexo contém as informações necessárias.
+                A planilha em anexo contém as informações necessárias.
+            </div>
+            <div>
+                Após a compra, lembrar de inserir os valores gastos na plataforma <a href=\"https://demapsm.herokuapp.com/andamentos/\">Demap SM</a>.
             </div>
         </div>
         """
@@ -126,24 +132,43 @@ def send_email_with_new_password(dest, user_id, new_password):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error in sending the email...")
 
 
-def send_email_to_role(dests):
+def send_email_to_role(dests, pedido_id, status_step):
     if DEVELOPMENT_ADM_EMAIL:
         dests = ["christian.franca@bcb.gov.br"]
 
-    subject = "Um novo pedido de compra precisa da sua confirmação!"
-    content="""
-    <div>
-        Um novo pedido de compra foi registrado e está aguardando a sua <strong>confirmação</strong>!</div>
-    </div>
-    <br>
-    <div>
-        Você pode acessar os pedidos que precisam de sua confirmação no link a seguir:
-    </div>
-    <br>
-    <div>
-        <a href=\"https://demapsm.herokuapp.com/andamentos/\">Demap SM Andamentos</a>
-    </div>
-    """
+    if status_step == 2:
+        subject = f"Novo pedido de compra n°{pedido_id} aguardando sua confirmação."
+    else:
+        subject = f"Pedido de compra n°{pedido_id} aguardando sua confirmação."
+
+    if status_step == 2:
+        content=f"""
+        <div>
+            Um novo pedido de compra (n°{pedido_id}) foi registrado e está aguardando a sua <strong>confirmação</strong>.</div>
+        </div>
+        <br>
+        <div>
+            Você pode acessar os pedidos que precisam de sua confirmação no link a seguir:
+        </div>
+        <br>
+        <div>
+            <a href=\"https://demapsm.herokuapp.com/andamentos/\">Demap SM Andamentos</a>
+        </div>
+        """
+    else:
+        content=f"""
+        <div>
+            O pedido de compra de n°{pedido_id} está aguardando a sua <strong>confirmação</strong>.</div>
+        </div>
+        <br>
+        <div>
+            Você pode acessar os pedidos que precisam de sua confirmação no link a seguir:
+        </div>
+        <br>
+        <div>
+            <a href=\"https://demapsm.herokuapp.com/andamentos/\">Demap SM Andamentos</a>
+        </div>
+        """
     
     message = Mail(
         from_email="smdemap@gmail.com",

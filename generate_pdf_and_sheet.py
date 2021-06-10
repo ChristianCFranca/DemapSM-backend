@@ -125,7 +125,7 @@ def stage_xlsx(pedido, dept):
     xlsx_name = engemil_xls.get_filename()
     dests = get_dests(role_name="fiscal")
     dests += ['ricardo.furtuoso@bcb.gov.br']
-    subject, content = set_contents_for_compra(dept)
+    subject, content = set_contents_for_compra(dept, pedido['_id'])
     send_email_with_xlsx(subject, content, xlsx_b64, xlsx_name, dests)
     engemil_xls.unset_pedido()
 
@@ -165,7 +165,7 @@ async def post_staged_pdf_info(data: dict = Body(...)):
     if not pdf_b64string:
         raise HTTPException(status_code=status_code.HTTP_400_BAD_REQUEST, detail="\'download_url\' not working")
 
-    subject, content = set_contents_for_compra(departamento)
+    subject, content = set_contents_for_compra(departamento, pedido_id)
     print("\033[94mPDF:\033[0m" + "\t  Enviando...")
     send_email_with_pdf(subject, content, pdf_b64string, pdf_name, dests)
 

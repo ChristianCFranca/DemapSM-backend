@@ -53,11 +53,11 @@ def deletePedido(pedido_id):
     res = collection.delete_one(pedido_id)
     return res.deleted_count
 
-def send_email_acompanhamento(_pedido, pedido_id=None):
+def send_email_acompanhamento(_pedido, pedido_id):
     pedido = _pedido.copy()
-    if pedido_id:
-        pedido['_id'] = pedido_id
+    pedido['_id'] = pedido_id
     status_step = pedido['statusStep']
+    
     if status_step != 6 and pedido['active']:  # Emails acontecem para todas as etapas exceto para a etapa 6. Também ocorrem apenas para pedidos ativos (que não foram cancelados)
         role_name = STEPS_TO_ROLES.get(pedido['statusStep']) # Obtem o role responsável por aquele pedido
         if role_name is None:
@@ -66,7 +66,7 @@ def send_email_acompanhamento(_pedido, pedido_id=None):
         dests = get_dests(role_name)  # Obtem todos os emails dos usuarios com o role especificado
         
         if status_step <= 4: # Emails apenas para notificação
-            send_email_to_role(dests)
+            send_email_to_role(dests, pedido_id, status_step)
 
         else: # Etapa 5 é email de attachment
             json_data = {
@@ -130,9 +130,9 @@ def get_pedido(pedido_id: str):
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
 def post_pedido(pedido = Body(...)):
-    if pedido['statusStep'] == 2 and SEND_EMAIL: # Envia um email de acompanhamento
-        send_email_acompanhamento(pedido)
     pedido_id = postPedido(pedido)
+    if pedido['statusStep'] == 2 and SEND_EMAIL: # Envia um email de acompanhamento
+        send_email_acompanhamento(pedido, pedido_id)
     return {"_id": pedido_id}
 
 
