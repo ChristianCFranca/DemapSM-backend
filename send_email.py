@@ -42,15 +42,15 @@ else:
 
 # Funções -----------------------------------------------------------------------------------------------------------------------------
 
-def set_contents_for_compra(for_dept, pedido_id):
+def set_contents_for_compra(for_dept, pedido_number):
     subject = "Nulo"
     content = "Nulo"
     if for_dept == Departamentos.demap:
-        subject = f"Pedido de compra n°{pedido_id} foi liberado para DEMAP"
+        subject = f"Pedido de compra n°{pedido_number} foi liberado para DEMAP"
         content=f"""
         <div>
             <div>
-                O pedido de compra n°{pedido_id} foi liberado para compra utilizando <b>cartão corporativo</b>.
+                O pedido de compra n°<b>{pedido_number}</b> foi liberado para compra utilizando <b>cartão corporativo</b>.
             </div>
             <br>
             <div>
@@ -62,11 +62,11 @@ def set_contents_for_compra(for_dept, pedido_id):
         </div>
         """
     elif for_dept == Departamentos.almoxarife:
-        subject = f"Pedido de compra n°{pedido_id} liberado para retirada no ALMOXARIFE"
+        subject = f"Pedido de compra n°{pedido_number} liberado para retirada no ALMOXARIFE"
         content=f"""
         <div>
             <div>
-                O pedido de compra n°{pedido_id} foi liberado para retirada no <b>ALMOXARIFE</b>.
+                O pedido de compra n°<b>{pedido_number}</b> foi liberado para retirada no <b>ALMOXARIFE</b>.
             </div>
             <br>
             <div>
@@ -75,11 +75,11 @@ def set_contents_for_compra(for_dept, pedido_id):
         </div>
         """
     elif for_dept == Departamentos.engemil:
-        subject = f"Pedido de compra n°{pedido_id} foi liberado para ENGEMIL"
+        subject = f"Pedido de compra n°{pedido_number} foi liberado para ENGEMIL"
         content=f"""
         <div>
             <div>
-                O pedido de compra n°{pedido_id} foi liberado para compra pela <b>ENGEMIL</b>.
+                O pedido de compra n°<b>{pedido_number}</b> foi liberado para compra pela <b>ENGEMIL</b>.
             </div>
             <br>
             <div>
@@ -132,19 +132,19 @@ def send_email_with_new_password(dest, user_id, new_password):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error in sending the email...")
 
 
-def send_email_to_role(dests, pedido_id, status_step):
+def send_email_to_role(dests, pedido_number, status_step):
     if DEVELOPMENT_ADM_EMAIL:
         dests = ["christian.franca@bcb.gov.br"]
 
     if status_step == 2:
-        subject = f"Novo pedido de compra n°{pedido_id} aguardando sua confirmação."
+        subject = f"Novo pedido de compra n°{pedido_number} aguardando sua confirmação."
     else:
-        subject = f"Pedido de compra n°{pedido_id} aguardando sua confirmação."
+        subject = f"Pedido de compra n°{pedido_number} aguardando sua confirmação."
 
     if status_step == 2:
         content=f"""
         <div>
-            Um novo pedido de compra (n°{pedido_id}) foi registrado e está aguardando a sua <strong>confirmação</strong>.</div>
+            Um novo pedido de compra (n°<strong>{pedido_number}</strong>) foi registrado e está aguardando a sua <strong>confirmação</strong>.</div>
         </div>
         <br>
         <div>
@@ -158,7 +158,7 @@ def send_email_to_role(dests, pedido_id, status_step):
     else:
         content=f"""
         <div>
-            O pedido de compra de n°{pedido_id} está aguardando a sua <strong>confirmação</strong>.</div>
+            O pedido de compra de n°<strong>{pedido_number}</strong> está aguardando a sua <strong>confirmação</strong>.</div>
         </div>
         <br>
         <div>
