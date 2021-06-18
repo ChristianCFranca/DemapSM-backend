@@ -145,7 +145,7 @@ def post_pedido(pedido = Body(...)):
 
 @router.put("/{pedido_id}", summary="Update pedido", 
     dependencies=[Depends(permissions_user_role(approved_roles=[
-        RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife
+        RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
 def put_pedido(pedido_id: str, pedido = Body(...)):
     if getPedido(pedido_id) is None:
