@@ -10,6 +10,7 @@ from auth import get_dests
 from openpyxl import load_workbook
 from tempfile import NamedTemporaryFile
 import json
+import time
 
 # Define nosso router
 router = APIRouter(prefix="/pdf", tags=["Setar Continuidade no envio do PDF"])
@@ -20,9 +21,12 @@ if not PDFMONKEY_API_KEY:
 else:
     print("\033[94m"+"PDF:" + "\033[0m" + "\t  PDF GENERATOR Api Key environment data available! Loaded.")
 
-BASE_URL = "https://api.pdfmonkey.io/api/v1/documents/"
+BASE_URL = "https://api.pdfmonkey.io/api/v1/documents"
 AUTH_HEADER = {"Authorization": f"Bearer {PDFMONKEY_API_KEY}"}
 
+TEMPLATES_FOR_COMPRA = {
+    "demap": "1C6D60D1-B722-48E1-9B8C-3E116E4AC5D6".lower()
+}
 TEMPLATES_FOR_DEPARTAMENTO = {
     Departamentos.demap: "BFDE2B7D-4255-4ACA-9525-0209F55C0CFC".lower(),
     Departamentos.almoxarife: "91C4B381-8608-4782-86B5-A8F92DE672BA".lower()
@@ -108,11 +112,49 @@ engemil_xls = EngemilHandlerXLS(PATH_ENGEMIL_XLSX)
 
 def stage_pdf(json_data, departamento):
     json_data['document']['document_template_id'] = TEMPLATES_FOR_DEPARTAMENTO[departamento]
-    for counter in range(10, 0, -1):
+    for counter in range(5, 0, -1): # 5 tentativas
         response = requests.post(BASE_URL, json=json_data, headers=AUTH_HEADER)
         if response.status_code == 201 or response.status_code == 200:
             print("\033[94mPDF:\033[0m" + f"\t  PDF postado para {departamento} com sucesso.")
             return
+        else:
+            print("\033[93mPDF:\033[0m" + f"\t  Não foi possível postar o PDF. Tentando novamente... Tentativas restantes: {counter}")
+    raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Não foi possível postar a criação do PDF.")
+
+def stage_and_download_pdf_compras_demap(json_data):
+    json_data['document']['document_template_id'] = TEMPLATES_FOR_COMPRA["demap"]
+    for counter in range(5, 0, -1): # 5 tentativas
+        response = requests.post(BASE_URL, json=json_data, headers=AUTH_HEADER)
+        if response.status_code == 201 or response.status_code == 200:
+            print("\033[94mPDF:\033[0m" + f"\t  PDF postado para COMPRAS-DEMAP com sucesso.")
+            pdf_id = response.json()['document']['id']
+
+            for counter_2 in range(10, 0, -1): # 10 tentativas
+                response = requests.get(f"{BASE_URL}/{pdf_id}", headers=AUTH_HEADER)
+                if response.status_code == 201 or response.status_code == 200:
+                    respose_json = response.json()
+                    status = respose_json['document']['status']
+                    if status == "failure":
+                        print("\033[93mPDF:\033[0m" + f"\t  O pdf falhou na geração.")
+                        raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Não foi possível gerar o PDF externamente.")
+
+                    elif status == "success":
+                        download_url = respose_json['document']['download_url']
+                        pdf_b64string = None
+                        for counter_3 in range(10, 0, -1):
+                            response = requests.get(download_url)
+                            if response.status_code == 200:
+                                print("\033[94mPDF:\033[0m" + "\t  PDF baixado com sucesso.")
+                                pdf_bytes = response.content
+                                return pdf_bytes
+                            else:
+                                print("\033[93mPDF:\033[0m" + f"\t  Não foi possível recuperar o pdf através da URL fornecida. Tentando novamente... Tentativas restantes: {counter_3}")
+                        if not pdf_b64string:
+                            raise HTTPException(status_code=status_code.HTTP_400_BAD_REQUEST, detail="\'download_url\' not working")
+
+                    else:
+                        time.sleep(0.1)
+
         else:
             print("\033[93mPDF:\033[0m" + f"\t  Não foi possível postar o PDF. Tentando novamente... Tentativas restantes: {counter}")
     raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Não foi possível postar a criação do PDF.")
@@ -129,6 +171,7 @@ def stage_xlsx(pedido, dept):
     send_email_with_xlsx(subject, content, xlsx_b64, xlsx_name, dests)
     engemil_xls.unset_pedido()
 
+
 # Rota -----------------------------------------------------------------------------------------------------------------------------------
 
 @router.post("/webhook", summary="Recebe o sinal de geração finalizada do pdf")
@@ -142,6 +185,10 @@ async def post_staged_pdf_info(data: dict = Body(...)):
         raise HTTPException(status_code=status_code.HTTP_400_BAD_REQUEST, detail="Document data not present")
 
     template_id = data['document']['document_template_id']
+    if DEPARTAMENTO_TO_TEMPLATES.get(template_id) is None:
+        print("\033[94mPDF:\033[0m" + f"\t  O template não existe para envio de emails. Assumindo pdf de download direto.")
+        raise HTTPException(status_code=status_code.HTTP_202_ACCEPTED, detail="O template não existe para o envio de email. Assumindo pdf de download direto.")
+
     departamento = DEPARTAMENTO_TO_TEMPLATES[template_id]
 
     pedido_number = json.loads(data['document']['payload'])['_number'] # Carrega o numero do documento

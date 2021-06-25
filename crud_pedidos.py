@@ -110,6 +110,28 @@ def send_email_acompanhamento(_pedido, pedido_id):
                 stage_pdf(json_data, Departamentos.almoxarife)
                 pass
 
+def map_pedidos_for_compra_demap():
+    pedidos = getPedidos()
+    if not pedidos:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Não há pedidos no momento.")
+    pedidos = filterPedidos(pedidos) # Lista de jsons
+    if not isinstance(pedidos, list):
+        pedidos = [pedidos]
+    pedidos_staged_compra = list(filter(lambda pedido: pedido['statusStep'] == 5, pedidos)) # Apenas os que estão na etapa 5
+
+    items = []
+    for pedido in pedidos_staged_compra:
+        if 'items' not in pedido:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Pedido não apresenta campo \'items\'.")
+        if not isinstance(pedido['items'], list):
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="\'items\' do pedido não constitui uma lista.")
+
+        for item in pedido['items']:
+            if item['direcionamentoDeCompra'] == "Demap" and not item['almoxarifadoPossui']:
+                items.append(item)
+
+    return items
+
 # -----------------------------------------------------------------------------
 
 @router.get("/", summary="Get pedidos", 
@@ -118,6 +140,8 @@ def send_email_acompanhamento(_pedido, pedido_id):
         ]))])
 def get_pedidos():
     pedidos = getPedidos()
+    if not pedidos:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Não há pedidos no momento.")
     return filterPedidos(pedidos)
 
 
@@ -131,6 +155,14 @@ def get_pedido(pedido_id: str):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado.")
     return filterPedidos(pedido)
 
+
+@router.get("/compra/demap", summary="Get items que precisam de compra pelo DEMAP", 
+    dependencies=[Depends(permissions_user_role(approved_roles=[
+        RoleName.admin, RoleName.fiscal
+        ]))])
+def get_pedidos_for_compra():
+    pedidos_para_comprar = map_pedidos_for_compra_demap()
+    return pedidos_para_comprar
 
 @router.post("/", summary="Post pedido", 
     dependencies=[Depends(permissions_user_role(approved_roles=[

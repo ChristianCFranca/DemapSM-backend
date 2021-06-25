@@ -4,13 +4,15 @@ from fastapi.responses import StreamingResponse
 from auth import permissions_user_role
 from cargos import RoleName
 
-from crud_pedidos import getPedidos
+from crud_pedidos import getPedidos, map_pedidos_for_compra_demap
 
-from io import StringIO
+from generate_pdf_and_sheet import stage_and_download_pdf_compras_demap
+
+from io import StringIO, BytesIO
 import pandas as pd
 
 # Define nosso router
-router = APIRouter(prefix="/collect_data", tags=["Pedidos de Compra"])
+router = APIRouter(prefix="/collect-data", tags=["Pedidos de Compra"])
 
 def getCorrectDF(df):
     new_df = pd.DataFrame(columns=df.drop('items', axis=1).rename({'quantidade': 'quantidadeDeItens'}, axis=1).columns.tolist() + 
@@ -43,11 +45,11 @@ def getCorrectDF(df):
     return new_df
 
 
-@router.get("/", summary="Get todos os pedidos como arquivo", 
+@router.get("/andamentos", summary="Get todos os pedidos como arquivo", 
     dependencies=[Depends(permissions_user_role(approved_roles=[
-        RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife
+        RoleName.admin, RoleName.fiscal, RoleName.assistente
         ]))])
-async def get_pedidos():
+async def collect_andamentos():
     all_pedidos = getPedidos()
     pedidos_df = pd.DataFrame.from_records(all_pedidos)
     pedidos_df = getCorrectDF(pedidos_df)
@@ -59,4 +61,31 @@ async def get_pedidos():
         iter([csv_file.getvalue()]),
         headers={"Content-Disposition": "inline; filename=\"data.csv\""},
         media_type='text/csv'
+    )
+
+@router.get("/compras-demap", summary="Get todos os pedidos pendentes para o DEMAP como um pdf", 
+    dependencies=[Depends(permissions_user_role(approved_roles=[
+        RoleName.admin, RoleName.fiscal, RoleName.assistente
+        ]))])
+def collect_compra_demap():
+    pedidos_para_comprar = map_pedidos_for_compra_demap()
+    json_data = {
+        "document": {
+                    "document_template_id": None,
+                    "meta": {
+                        "_filename": f"compra_demap.pdf"
+                    },
+                    "payload": {
+                        "pedidos": pedidos_para_comprar
+                    },
+                    "status": "pending"
+                }
+    }
+    pdf_file = BytesIO()
+    pdf_bytes = stage_and_download_pdf_compras_demap(json_data)
+    pdf_file.write(pdf_bytes)
+
+    return StreamingResponse(
+        iter([pdf_file.getvalue()]),
+        media_type='application/pdf'
     )
