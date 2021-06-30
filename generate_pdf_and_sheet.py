@@ -65,11 +65,16 @@ class EngemilHandlerXLS():
             self.sheet[f"B{i+9}"] = item['nome']
             self.sheet[f"F{i+9}"] = item['unidade']
             self.sheet[f"G{i+9}"] = item['quantidade']
-            self.sheet[f"H{i+9}"] = self.fmt_far(float(item['valorUnitario']))
-            self.sheet[f"J{i+9}"] = self.fmt_far(float(item['valorTotal']))
+            try:
+                self.sheet[f"H{i+9}"] = self.fmt_far(float(item['valorUnitario']))
+                self.sheet[f"J{i+9}"] = self.fmt_far(float(item['valorTotal']))
+            except TypeError:
+                raise HTTPException(status_code=status_code.HTTP_400_BAD_REQUEST, detail="Itens não cadastrados não podem ser comprados pela Engemil.")
         # Soma total
-
-        self.sheet[f"J16"] = self.fmt_far(sum([float(item['valorTotal']) for item in self.pedido['items']]))
+        try:
+            self.sheet[f"J16"] = self.fmt_far(sum([float(item['valorTotal']) for item in self.pedido['items']]))
+        except TypeError:
+            raise HTTPException(status_code=status_code.HTTP_400_BAD_REQUEST, detail="Itens não cadastrados não podem ser comprados pela Engemil.")
         
     def set_finalidade(self):
         self.sheet['A20'] = self.pedido['finalidade']
