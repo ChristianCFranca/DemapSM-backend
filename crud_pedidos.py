@@ -33,6 +33,10 @@ def getPedidos():
     all_pedidos = list(collection.find())
     return all_pedidos
 
+def getQuantidadePedidos():
+    quantidade = collection.find().count()
+    return quantidade
+
 def getPedidoNumber(pedido_id):
     pedido_id = ObjectId(pedido_id)
     pedido_number = collection.count_documents({"_id": {"$lte": pedido_id}})
@@ -44,6 +48,8 @@ def getPedido(pedido_id):
     return pedido
 
 def postPedido(pedido):
+    quantidade = getQuantidadePedidos()
+    pedido['number'] = quantidade + 1
     res = collection.insert_one(pedido)
     return str(res.inserted_id)
 
@@ -60,8 +66,6 @@ def deletePedido(pedido_id):
 
 def send_email_acompanhamento(_pedido, pedido_id):
     pedido = _pedido.copy()
-    pedido_number = getPedidoNumber(pedido_id)
-    pedido['_number'] = pedido_number
     pedido['_id'] = pedido_id
     status_step = pedido['statusStep']
     
@@ -72,8 +76,11 @@ def send_email_acompanhamento(_pedido, pedido_id):
             return
         dests = get_dests(role_name)  # Obtem todos os emails dos usuarios com o role especificado
         
+        if 'number' not in pedido:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="O pedido não apresente o identificador de número.")
+
         if status_step <= 4: # Emails apenas para notificação
-            send_email_to_role(dests, pedido_number, status_step)
+            send_email_to_role(dests, pedido['number'], status_step)
 
         else: # Etapa 5 é email de attachment
             json_data = {

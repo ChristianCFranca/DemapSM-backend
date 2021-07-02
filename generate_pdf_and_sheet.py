@@ -172,7 +172,7 @@ def stage_xlsx(pedido, dept):
     xlsx_name = engemil_xls.get_filename()
     dests = get_dests(role_name="fiscal")
     dests += ['ricardo.furtuoso@bcb.gov.br']
-    subject, content = set_contents_for_compra(dept, pedido['_number'])
+    subject, content = set_contents_for_compra(dept, pedido['number'])
     send_email_with_xlsx(subject, content, xlsx_b64, xlsx_name, dests)
     engemil_xls.unset_pedido()
 
@@ -196,7 +196,7 @@ async def post_staged_pdf_info(data: dict = Body(...)):
 
     departamento = DEPARTAMENTO_TO_TEMPLATES[template_id]
 
-    pedido_number = json.loads(data['document']['payload'])['_number'] # Carrega o numero do documento
+    pedido_number = json.loads(data['document']['payload'])['number'] # Carrega o numero do documento
     pdf_name = f"pedido_de_compra_{pedido_number}.pdf"
 
     dests = get_dests(role_name="fiscal")
