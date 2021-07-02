@@ -34,8 +34,10 @@ def getPedidos():
     return all_pedidos
 
 def getQuantidadePedidos():
-    quantidade = collection.find().count()
-    return quantidade
+    max_number = max(map(
+        lambda doc: doc['number'], collection.find({}, ["number"])
+        ))
+    return max_number
 
 def getPedidoNumber(pedido_id):
     pedido_id = ObjectId(pedido_id)
