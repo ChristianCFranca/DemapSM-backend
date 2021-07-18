@@ -8,7 +8,7 @@ from send_email import SEND_EMAIL, send_email_to_role
 
 from generate_pdf_and_sheet import stage_pdf, stage_xlsx
 
-COLLECTION = "pedidosdecompra"
+COLLECTION = "pedidosdecompra-dev"
 collection = db[COLLECTION]
 
 STEPS_TO_ROLES = {
@@ -34,10 +34,18 @@ def getPedidos():
     return all_pedidos
 
 def getQuantidadePedidos():
-    max_number = max(map(
-        lambda doc: doc['number'], collection.find({}, ["number"])
-        ))
-    return max_number
+    try:
+        coll_find = collection.find({}, ["number"])
+        if coll_find.count() == 0:
+            return 0
+        max_number = max(
+            map(
+                lambda doc: doc['number'], coll_find
+            )
+        )
+        return max_number
+    except:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Não há o campo \'number\' nos documentos .")
 
 def getPedidoNumber(pedido_id):
     pedido_id = ObjectId(pedido_id)
@@ -150,7 +158,7 @@ def map_pedidos_for_compra_demap():
 def get_pedidos():
     pedidos = getPedidos()
     if not pedidos:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Não há pedidos no momento.")
+        raise HTTPException(status_code=status.HTTP_200_OK, detail="Não há pedidos no momento.")
     return filterPedidos(pedidos)
 
 
