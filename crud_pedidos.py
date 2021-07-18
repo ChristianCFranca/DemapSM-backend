@@ -1,4 +1,5 @@
 from fastapi import HTTPException, APIRouter, status, Body, Depends
+from fastapi.param_functions import Query
 from database import db
 from bson import ObjectId
 
@@ -8,7 +9,7 @@ from send_email import SEND_EMAIL, send_email_to_role
 
 from generate_pdf_and_sheet import stage_pdf, stage_xlsx
 
-COLLECTION = "pedidosdecompra-dev"
+COLLECTION = "pedidosdecompra"
 collection = db[COLLECTION]
 
 STEPS_TO_ROLES = {
@@ -144,7 +145,10 @@ def map_pedidos_for_compra_demap():
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="\'items\' do pedido não constitui uma lista.")
 
         for item in pedido['items']:
-            if item['direcionamentoDeCompra'] == "Demap" and not item['almoxarifadoPossui']:
+            recebido = item.get('recebido')
+            if recebido is None:
+                recebido = False
+            if item['direcionamentoDeCompra'] == "Demap" and not item['almoxarifadoPossui'] and not recebido:
                 items.append(item)
 
     return items
@@ -173,7 +177,7 @@ def get_pedido(pedido_id: str):
     return filterPedidos(pedido)
 
 
-@router.get("/compra/demap", summary="Get items que precisam de compra pelo DEMAP", 
+@router.get("/compra/demap", summary="Get itens que precisam de compra pelo DEMAP", 
     dependencies=[Depends(permissions_user_role(approved_roles=[
         RoleName.admin, RoleName.fiscal
         ]))])
@@ -196,11 +200,10 @@ def post_pedido(pedido = Body(...)):
     dependencies=[Depends(permissions_user_role(approved_roles=[
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
-def put_pedido(pedido_id: str, pedido = Body(...)):
+def put_pedido(pedido_id: str, email: bool = True, pedido = Body(...)):
     if getPedido(pedido_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado.")
-
-    if pedido['statusStep'] != 6 and SEND_EMAIL: # Envia um email de acompanhamento (se não for a última etapa)
+    if pedido['statusStep'] != 6 and SEND_EMAIL and email: # Envia um email de acompanhamento (se não for a última etapa)
         send_email_acompanhamento(pedido, pedido_id)
 
     res = putPedido(pedido_id, pedido) # pedido é um dict
