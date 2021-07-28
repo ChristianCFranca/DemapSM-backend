@@ -135,7 +135,7 @@ def map_pedidos_for_compra_demap():
     pedidos = filterPedidos(pedidos) # Lista de jsons
     if not isinstance(pedidos, list):
         pedidos = [pedidos]
-    pedidos_staged_compra = list(filter(lambda pedido: pedido['statusStep'] == 5, pedidos)) # Apenas os que estão na etapa 5
+    pedidos_staged_compra = list(filter(lambda pedido: pedido['statusStep'] == 5 and pedido['active'], pedidos)) # Apenas os que estão na etapa 5 e estão ativos
 
     items = []
     for pedido in pedidos_staged_compra:
