@@ -9,6 +9,7 @@ if os.path.exists("./.env"): # Carrega as variaveis de ambiente de desenvolvimen
 import crud_pedidos
 import crud_materiais
 import collect_data
+import empresas
 import auth
 import generate_pdf_and_sheet
 
@@ -18,6 +19,7 @@ app.include_router(crud_materiais.router)
 app.include_router(collect_data.router)
 app.include_router(auth.router)
 app.include_router(generate_pdf_and_sheet.router)
+app.include_router(empresas.router)
 
 origins = [
     "http://localhost:8080",

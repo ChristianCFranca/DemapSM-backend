@@ -1,5 +1,5 @@
+from typing import Optional
 from fastapi import HTTPException, APIRouter, status, Body, Depends
-from fastapi.param_functions import Query
 from database import db
 from bson import ObjectId
 
@@ -9,7 +9,7 @@ from send_email import SEND_EMAIL, send_email_to_role
 
 from generate_pdf_and_sheet import stage_pdf, stage_xlsx
 
-COLLECTION = "pedidosdecompra"
+COLLECTION = "pedidosdecompra-dev"
 collection = db[COLLECTION]
 
 STEPS_TO_ROLES = {
@@ -30,8 +30,11 @@ def filterPedidos(pedidos):
         pedidos["_id"] = str(pedidos["_id"])
     return pedidos
 
-def getPedidos():
-    all_pedidos = list(collection.find())
+def getPedidos(empresa):
+    if empresa:
+        all_pedidos = list(collection.find({"empresa": empresa}))
+    else:
+        all_pedidos = list(collection.find())
     return all_pedidos
 
 def getQuantidadePedidos():
@@ -159,8 +162,8 @@ def map_pedidos_for_compra_demap():
     dependencies=[Depends(permissions_user_role(approved_roles=[
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
-def get_pedidos():
-    pedidos = getPedidos()
+def get_pedidos(empresa: Optional[str] = None):
+    pedidos = getPedidos(empresa)
     if not pedidos:
         raise HTTPException(status_code=status.HTTP_200_OK, detail="Não há pedidos no momento.")
     return filterPedidos(pedidos)
