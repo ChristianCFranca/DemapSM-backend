@@ -22,6 +22,13 @@ STEPS_TO_ROLES = {
 # Define nosso router
 router = APIRouter(prefix="/crud/pedidos", tags=["Pedidos de Compra"])
 
+def list_from_query_param(empresa: str, sep=","):
+    if empresa:
+        if not isinstance(empresa, str):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Parâmetros de Query deveriam ser uma string.")
+        return empresa.split(sep)
+    return 
+
 def filterPedidos(pedidos):
     if isinstance(pedidos, list):
         for pedido in pedidos:
@@ -32,7 +39,10 @@ def filterPedidos(pedidos):
 
 def getPedidos(empresa):
     if empresa:
-        all_pedidos = list(collection.find({"empresa": empresa}))
+        if isinstance(empresa, list):
+            all_pedidos = list(collection.find({"$or": [{"empresa": emp} for emp in empresa]}))
+        else:
+            all_pedidos = list(collection.find({"empresa": empresa}))
     else:
         all_pedidos = list(collection.find())
     return all_pedidos
@@ -162,7 +172,7 @@ def map_pedidos_for_compra_demap():
     dependencies=[Depends(permissions_user_role(approved_roles=[
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
-def get_pedidos(empresa: Optional[str] = None):
+def get_pedidos(empresa: Optional[str] = Depends(list_from_query_param)):
     pedidos = getPedidos(empresa)
     if not pedidos:
         raise HTTPException(status_code=status.HTTP_200_OK, detail="Não há pedidos no momento.")
@@ -187,6 +197,7 @@ def get_pedido(pedido_id: str):
 def get_pedidos_for_compra():
     pedidos_para_comprar = map_pedidos_for_compra_demap()
     return pedidos_para_comprar
+
 
 @router.post("/", summary="Post pedido", 
     dependencies=[Depends(permissions_user_role(approved_roles=[
