@@ -1,5 +1,5 @@
+from typing import Optional
 from fastapi import HTTPException, APIRouter, status, Body, Depends
-from fastapi.param_functions import Query
 from database import db
 from bson import ObjectId
 
@@ -9,7 +9,7 @@ from send_email import SEND_EMAIL, send_email_to_role
 
 from generate_pdf_and_sheet import stage_pdf, stage_xlsx
 
-COLLECTION = "pedidosdecompra"
+COLLECTION = "pedidosdecompra-dev"
 collection = db[COLLECTION]
 
 STEPS_TO_ROLES = {
@@ -22,6 +22,13 @@ STEPS_TO_ROLES = {
 # Define nosso router
 router = APIRouter(prefix="/crud/pedidos", tags=["Pedidos de Compra"])
 
+def list_from_query_param(empresa: str = None, sep=","):
+    if empresa:
+        if not isinstance(empresa, str):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Parâmetros de Query deveriam ser uma string.")
+        return empresa.split(sep)
+    return 
+
 def filterPedidos(pedidos):
     if isinstance(pedidos, list):
         for pedido in pedidos:
@@ -30,8 +37,14 @@ def filterPedidos(pedidos):
         pedidos["_id"] = str(pedidos["_id"])
     return pedidos
 
-def getPedidos():
-    all_pedidos = list(collection.find())
+def getPedidos(empresa=None):
+    if empresa:
+        if isinstance(empresa, list):
+            all_pedidos = list(collection.find({"$or": [{"empresa": emp} for emp in empresa]}))
+        else:
+            all_pedidos = list(collection.find({"empresa": empresa}))
+    else:
+        all_pedidos = list(collection.find())
     return all_pedidos
 
 def getQuantidadePedidos():
@@ -159,8 +172,8 @@ def map_pedidos_for_compra_demap():
     dependencies=[Depends(permissions_user_role(approved_roles=[
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
-def get_pedidos():
-    pedidos = getPedidos()
+def get_pedidos(empresa: Optional[str] = Depends(list_from_query_param)):
+    pedidos = getPedidos(empresa)
     if not pedidos:
         raise HTTPException(status_code=status.HTTP_200_OK, detail="Não há pedidos no momento.")
     return filterPedidos(pedidos)
@@ -185,6 +198,7 @@ def get_pedidos_for_compra():
     pedidos_para_comprar = map_pedidos_for_compra_demap()
     return pedidos_para_comprar
 
+
 @router.post("/", summary="Post pedido", 
     dependencies=[Depends(permissions_user_role(approved_roles=[
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
@@ -201,8 +215,12 @@ def post_pedido(pedido = Body(...)):
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
 def put_pedido(pedido_id: str, email: bool = True, pedido = Body(...)):
-    if getPedido(pedido_id) is None:
+    pedido_in_db = getPedido(pedido_id)
+    if pedido_in_db is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado.")
+    if pedido_in_db['statusStep'] > pedido['statusStep']:
+        raise HTTPException(status_code=status.HTTP_304_NOT_MODIFIED, detail="Pedido já foi aprovado por outro usuário. Favor atualizar a página.")
+    
     if pedido['statusStep'] != 6 and SEND_EMAIL and email: # Envia um email de acompanhamento (se não for a última etapa)
         send_email_acompanhamento(pedido, pedido_id)
 

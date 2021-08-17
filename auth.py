@@ -58,6 +58,7 @@ class User(BaseModel):
     username: str
     nome_completo: str
     role: str
+    empresa: List[str] = None
 
 class UserWithID(User):
     id: str
@@ -160,6 +161,9 @@ def validate_email(username: str):
         )
     return username
 
+def validade_empresa(empresa: str):
+    return empresa.split(',')
+    
 def validate_nome_completo(nome_completo: str):
     if not nome_completo.replace(" ", "").isalpha():
         raise HTTPException(
@@ -303,7 +307,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return UserWithToken(**user_with_token) # Isso é salvo pela aplicação, que pode usar como bem entender
 
 @router.post("/users/create/", response_model=User) # Criação de usuarios
-async def create_user(request: Request, roleName: RoleName = Body(...), nomeCompleto: str = Body(...) , form_data: OAuth2PasswordRequestForm = Depends()):
+async def create_user(request: Request, roleName: RoleName = Body(...), nomeCompleto: str = Body(...), empresa: str = Body(...), form_data: OAuth2PasswordRequestForm = Depends()):
     if roleName != RoleName.regular:
         user = await get_current_user(await oauth2_scheme(request)) # Verifica se o usuário é valido
         if not corr_roles(user.role, roleName): # Pega o role do usuario atual e verifica sua permissao em relacao ao role colocado
@@ -312,10 +316,12 @@ async def create_user(request: Request, roleName: RoleName = Body(...), nomeComp
                 detail="Usuário não possui permissão para criar esse role"
             )
     nome_completo = validate_nome_completo(nomeCompleto) # Valida o nome completo
+    empresa = validade_empresa(empresa) # Valida o nome da empresa
     username = validate_email(form_data.username) # Valida o formato do email
     hashed_password = pwd_context.hash(form_data.password) # Criptografa a senha
-    user = UserInDB(username=username, nome_completo=nome_completo, hashed_password=hashed_password, role=roleName)
-    user_inserted = insert_new_user_if_not_exist(user)
+    print(empresa)
+    user = UserInDB(username=username, nome_completo=nome_completo, hashed_password=hashed_password, role=roleName, empresa=empresa)
+    insert_new_user_if_not_exist(user)
     return user
 
 @router.put("/users/update/password", response_model=User)
