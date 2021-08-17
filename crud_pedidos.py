@@ -9,7 +9,7 @@ from send_email import SEND_EMAIL, send_email_to_role
 
 from generate_pdf_and_sheet import stage_pdf, stage_xlsx
 
-COLLECTION = "pedidosdecompra-dev"
+COLLECTION = "pedidosdecompra"
 collection = db[COLLECTION]
 
 STEPS_TO_ROLES = {
