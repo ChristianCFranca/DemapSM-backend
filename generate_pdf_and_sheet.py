@@ -151,6 +151,7 @@ def stage_and_download_pdf_compras_demap(json_data):
                             if response.status_code == 200:
                                 print("\033[94mPDF:\033[0m" + "\t  PDF baixado com sucesso.")
                                 pdf_bytes = response.content
+                                requests.delete(f"{BASE_URL}/{pdf_id}", headers=AUTH_HEADER)
                                 return pdf_bytes
                             else:
                                 print("\033[93mPDF:\033[0m" + f"\t  Não foi possível recuperar o pdf através da URL fornecida. Tentando novamente... Tentativas restantes: {counter_3}")

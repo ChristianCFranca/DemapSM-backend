@@ -18,8 +18,11 @@ def filterMateriais(materiais):
         materiais["_id"] = str(materiais["_id"])
     return materiais
 
-def getMateriais():
-    all_materiais = list(collection.find())
+def getMateriais(empresa: str = None):
+    if empresa:
+        all_materiais = list(collection.find({"empresa": empresa}))
+    else:
+        all_materiais = list(collection.find())
     return all_materiais
 
 def getMaterial(material_id):
@@ -47,8 +50,8 @@ def deleteMaterial(material_id):
     dependencies=[Depends(permissions_user_role(approved_roles=[
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
-def get_materiais():
-    materiais = getMateriais()
+def get_materiais(empresa: str):
+    materiais = getMateriais(empresa)
     return filterMateriais(materiais)
 
 @router.get("/{material_id}", summary="Get material by id", 

@@ -22,7 +22,7 @@ STEPS_TO_ROLES = {
 # Define nosso router
 router = APIRouter(prefix="/crud/pedidos", tags=["Pedidos de Compra"])
 
-def list_from_query_param(empresa: str, sep=","):
+def list_from_query_param(empresa: str = None, sep=","):
     if empresa:
         if not isinstance(empresa, str):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Parâmetros de Query deveriam ser uma string.")
@@ -37,7 +37,7 @@ def filterPedidos(pedidos):
         pedidos["_id"] = str(pedidos["_id"])
     return pedidos
 
-def getPedidos(empresa):
+def getPedidos(empresa=None):
     if empresa:
         if isinstance(empresa, list):
             all_pedidos = list(collection.find({"$or": [{"empresa": emp} for emp in empresa]}))
@@ -215,8 +215,12 @@ def post_pedido(pedido = Body(...)):
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
 def put_pedido(pedido_id: str, email: bool = True, pedido = Body(...)):
-    if getPedido(pedido_id) is None:
+    pedido_in_db = getPedido(pedido_id)
+    if pedido_in_db is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado.")
+    if pedido_in_db['statusStep'] > pedido['statusStep']:
+        raise HTTPException(status_code=status.HTTP_304_NOT_MODIFIED, detail="Pedido já foi aprovado por outro usuário. Favor atualizar a página.")
+    
     if pedido['statusStep'] != 6 and SEND_EMAIL and email: # Envia um email de acompanhamento (se não for a última etapa)
         send_email_acompanhamento(pedido, pedido_id)
 
