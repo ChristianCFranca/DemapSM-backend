@@ -5,8 +5,6 @@ from fastapi import HTTPException, status
 
 import os
 
-from cargos import Departamentos
-
 DEVELOPMENT_ADM_EMAIL = os.environ.get("DEVELOPMENT_ADM_EMAIL")
 if not DEVELOPMENT_ADM_EMAIL:
     raise Exception("No DEVELOPMENT ADM EMAIL env available...")
@@ -42,51 +40,20 @@ else:
 
 # Funções -----------------------------------------------------------------------------------------------------------------------------
 
-def set_contents_for_compra(for_dept, pedido_number):
-    subject = "Nulo"
-    content = "Nulo"
-    if for_dept == Departamentos.demap:
-        subject = f"Pedido de compra n°{pedido_number} foi liberado para DEMAP"
-        content=f"""
+def set_contents_for_compra(info):
+    subject = f"Pedido de compra n°{info['pedido_number']} foi liberado para {info['titulo']}"
+    content = f"""
         <div>
             <div>
-                O pedido de compra n°<b>{pedido_number}</b> foi liberado para compra utilizando <b>cartão corporativo</b>.
+                {info['ato']}
+                O pedido de compra n°<b>{info['pedido_number']}</b> foi liberado para {info['ato']}.
             </div>
             <br>
             <div>
                 O pdf em anexo contém as informações necessárias.
             </div>
             <div>
-                Após a compra, lembrar de inserir os valores gastos na plataforma <a href=\"https://demapsm.herokuapp.com/andamentos/\">Demap SM</a>.
-            </div>
-        </div>
-        """
-    elif for_dept == Departamentos.almoxarife:
-        subject = f"Pedido de compra n°{pedido_number} liberado para retirada no ALMOXARIFE"
-        content=f"""
-        <div>
-            <div>
-                O pedido de compra n°<b>{pedido_number}</b> foi liberado para retirada no <b>ALMOXARIFE</b>.
-            </div>
-            <br>
-            <div>
-                O pdf em anexo contém as informações necessárias.
-            </div>
-        </div>
-        """
-    elif for_dept == Departamentos.engemil:
-        subject = f"Pedido de compra n°{pedido_number} foi liberado para ENGEMIL"
-        content=f"""
-        <div>
-            <div>
-                O pedido de compra n°<b>{pedido_number}</b> foi liberado para compra pela <b>ENGEMIL</b>.
-            </div>
-            <br>
-            <div>
-                A planilha em anexo contém as informações necessárias.
-            </div>
-            <div>
-                Após a compra, lembrar de inserir os valores gastos na plataforma <a href=\"https://demapsm.herokuapp.com/andamentos/\">Demap SM</a>.
+                Após a compra, lembrar de inserir os valores gastos na plataforma <a href=\"https://demapsm.herokuapp.com/andamentos/\">Demap SM</a> se for o caso para o pedido em questão.
             </div>
         </div>
         """

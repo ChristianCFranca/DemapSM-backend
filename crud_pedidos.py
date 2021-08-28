@@ -7,7 +7,7 @@ from auth import permissions_user_role, get_dests
 from cargos import RoleName, Departamentos
 from send_email import SEND_EMAIL, send_email_to_role
 
-from generate_pdf_and_sheet import stage_pdf, stage_xlsx
+from generate_pdf_and_sheet import stage_pdf
 
 COLLECTION = "pedidosdecompra"
 collection = db[COLLECTION]
@@ -89,16 +89,20 @@ def deletePedido(pedido_id):
     return res.deleted_count
 
 def send_email_acompanhamento(_pedido, pedido_id):
+    if not 'empresa' in _pedido:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="A chave \'empresa\' não existe no pedido.")
+
     pedido = _pedido.copy()
     pedido['_id'] = pedido_id
     status_step = pedido['statusStep']
-    
+    correct_empresa = pedido['empresa']
+
     if status_step != 6 and pedido['active']:  # Emails acontecem para todas as etapas exceto para a etapa 6. Também ocorrem apenas para pedidos ativos (que não foram cancelados)
         role_name = STEPS_TO_ROLES.get(pedido['statusStep']) # Obtem o role responsável por aquele pedido
         if role_name is None:
             print("\033[93m"+"EMAIL:" + "\033[0m" + "\t  Não foi possível obter o role responsável pela etapa em questão.")
             return
-        dests = get_dests(role_name)  # Obtem todos os emails dos usuarios com o role especificado
+        dests = get_dests(role_name, correct_empresa, verbose=False)  # Obtem todos os emails dos usuarios com o role especificado e que acessam a empresa em questão
         
         if 'number' not in pedido:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="O pedido não apresente o identificador de número.")
@@ -121,25 +125,30 @@ def send_email_acompanhamento(_pedido, pedido_id):
             json_data['document']['payload']['items'] = [item for item in pedido['items'] if item['aprovadoFiscal']]
 
             items_demap = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == "demap" and not item['almoxarifadoPossui'], json_data['document']['payload']['items']))
-            items_engemil = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == "engemil" and not item['almoxarifadoPossui'], json_data['document']['payload']['items']))
+            items_empresa = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == correct_empresa.lower() and not item['almoxarifadoPossui'], json_data['document']['payload']['items']))
             items_almoxarifado = list(filter(lambda item: item['almoxarifadoPossui'], json_data['document']['payload']['items']))
             
-            if len(items_demap) == 0 and len(items_engemil) == 0 and len(items_almoxarifado) == 0:
-                print("\033[93m"+"PDF:" + "\033[0m" + "\t  Almoxarifado não possui o item e o direcionamento de compra não consta como \'Demap\' ou \'Engemil\'. Nenhum email será enviado.")
-                return
+            if (len(items_demap) == 0 and len(items_empresa) == 0 and len(items_almoxarifado) == 0) or any(map(lambda item: item['direcionamentoDeCompra'] is None, json_data['document']['payload']['items'])):
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="\033[93m"+"PDF:" + "\033[0m" + f"\t  Almoxarifado não possui o item e/ou o direcionamento de compra não consta como \'Demap\' ou \'{correct_empresa}\'.")
             
-            if len(items_engemil) > 0:
-                pedido['items'] = items_engemil
-                stage_xlsx(pedido, Departamentos.engemil)
+            pdfs_ids = dict()
+            if len(items_empresa) > 0:
+                json_data['document']['payload']['items'] = items_empresa
+                res = stage_pdf(json_data, Departamentos.empresa)
+                pdfs_ids[Departamentos.empresa] = res["document"]["id"]
 
             if len(items_demap) > 0:
                 json_data['document']['payload']['items'] = items_demap
-                stage_pdf(json_data, Departamentos.demap)
+                res = stage_pdf(json_data, Departamentos.demap)
+                pdfs_ids[Departamentos.demap] = res["document"]["id"]
 
             if len(items_almoxarifado) > 0:
                 json_data['document']['payload']['items'] = items_almoxarifado
-                stage_pdf(json_data, Departamentos.almoxarife)
-                pass
+                res = stage_pdf(json_data, Departamentos.almoxarife)
+                pdfs_ids[Departamentos.almoxarife] = res["document"]["id"]
+
+            _pedido["pdfs_ids"] = pdfs_ids # Esta alteração altera o dicionário ORIGINAL, e não a CÓPIA. Isso fará com que, ao atualizar o pedido saindo desta função, o pedido tenha as informações de id's dos documentos correlacionados
+
 
 def map_pedidos_for_compra_demap():
     pedidos = getPedidos()

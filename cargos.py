@@ -9,5 +9,9 @@ class RoleName(str, Enum):
 
 class Departamentos(str, Enum):
     demap = "demap"
-    engemil = "engemil"
     almoxarife = "almoxarife"
+    empresa = "empresa"
+
+emails_encarregados_por_empresa = {
+    "Engemil": "ricardo.furtuoso@bcb.gov.br"
+}
