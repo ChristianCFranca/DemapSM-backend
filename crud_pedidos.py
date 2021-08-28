@@ -122,7 +122,8 @@ def send_email_acompanhamento(_pedido, pedido_id):
                 }
             }
              # Os itens são filtrados pela aprovação do fiscal, o que significa que eles foram aprovados para serem comprados ou retirados
-            json_data['document']['payload']['items'] = [item for item in pedido['items'] if item['aprovadoFiscal']]
+             # Itens de procedência fixa também não devem ser agregados na cobrança
+            json_data['document']['payload']['items'] = [item for item in pedido['items'] if item['aprovadoFiscal'] and item['categoria'] != "Fixo"]
 
             items_demap = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == "demap" and not item['almoxarifadoPossui'], json_data['document']['payload']['items']))
             items_empresa = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == correct_empresa.lower() and not item['almoxarifadoPossui'], json_data['document']['payload']['items']))
