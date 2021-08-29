@@ -47,6 +47,15 @@ def stage_pdf(json_data, departamento):
             print("\033[93mPDF:\033[0m" + f"\t  Não foi possível postar o PDF. Tentando novamente... Tentativas restantes: {counter}")
     raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Não foi possível postar a criação do PDF.")
 
+def get_pdf_link_for_download(pdf_id):
+    response = requests.get(f"{BASE_URL}/{pdf_id}", headers=AUTH_HEADER)
+    if response.status_code == 200:
+        return response.json()['document']['download_url']
+    elif response.status_code == 401:
+        raise HTTPException(status_code=status_code.HTTP_400_BAD_REQUEST, detail="Um dos ID's passados não existe nos PDFs do banco de dados.")
+    else:
+        raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ocorreu um erro ao tentar coletar os PDFs.")
+
 def stage_and_download_pdf_compras_demap(json_data):
     json_data['document']['document_template_id'] = TEMPLATES_FOR_COMPRA["demap"]
     for counter in range(5, 0, -1): # 5 tentativas
