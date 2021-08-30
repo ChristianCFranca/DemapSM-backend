@@ -215,7 +215,7 @@ def get_pedidos_for_compra():
         ]))])
 def post_pedido(pedido = Body(...)):
     pedido_id = postPedido(pedido)
-    if pedido['statusStep'] == 2 and SEND_EMAIL: # Envia um email de acompanhamento
+    if (pedido['statusStep'] == 2 or pedido['statusStep'] == 3) and SEND_EMAIL: # Envia um email de acompanhamento
         send_email_acompanhamento(pedido, pedido_id)
     return {"_id": pedido_id}
 
