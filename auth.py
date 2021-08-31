@@ -202,23 +202,23 @@ def permissions_user_role(approved_roles: List[str]): # Função que retorna out
 
 def get_dests(role_name, correct_empresa, verbose=False):
     users = get_all_users_by_role(role_name)
+    dests = ['christian.franca@bcb.gov.br']
     if users is None: # Se não houverem usuários, ocorre um warning
         print("\033[93m"+"EMAIL:" + "\033[0m" + "\t  Não existem usuários com o role especificado. Apenas o admin receberá um email.")
-        return ['christian.franca@bcb.gov.br']
-    dests = []
-    for user in users:
-        empresas = user.get('empresa')
-        if not empresas:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Um usuário do sistema não apresenta a chave \'empresa\'.")
-        if not isinstance(empresas, list):
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Um dos usuários não apresentou a chave \'empresa\' como uma lista.")
-        if correct_empresa in empresas:
-            if verbose:
-                print(f"O usuário {user['username']} apresentou as características corretas.")
-            dests.append(user['username'])
+        return dests
+    else:
+        for user in users:
+            empresas = user.get('empresa')
+            if not empresas:
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Um usuário do sistema não apresenta a chave \'empresa\'.")
+            if not isinstance(empresas, list):
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Um dos usuários não apresentou a chave \'empresa\' como uma lista.")
+            if correct_empresa in empresas:
+                if verbose:
+                    print(f"O usuário {user['username']} apresentou as características corretas.")
+                dests.append(user['username'])
     if len(dests) == 0:
         print("\033[93m"+"EMAIL:" + "\033[0m" + "\t  Não existem usuários com o role especificado. Apenas o admin receberá um email.")
-        return ['christian.franca@bcb.gov.br']
     return dests
 
 # funções CRUD ---------------------------------------------------------------------------------------------------------------------------------------------------------------
