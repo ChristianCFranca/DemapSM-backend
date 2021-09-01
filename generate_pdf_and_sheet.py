@@ -122,7 +122,7 @@ async def post_staged_pdf_info(data: dict = Body(...)):
     dests = get_dests(role_name="fiscal", correct_empresa=empresa_associada, verbose=True)
     if departamento == Departamentos.empresa or departamento == Departamentos.almoxarife:
         if empresa_associada in emails_encarregados_por_empresa:
-            dests.append(emails_encarregados_por_empresa[empresa_associada])
+            dests.extend(emails_encarregados_por_empresa[empresa_associada])
         else:
             print("\033[93mPDF:\033[0m" + f"\t  A empresa \'{empresa_associada}\' não apresenta um encarregado cadastrado. Recomenda-se o cadastro imediato.")
 
