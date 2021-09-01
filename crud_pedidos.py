@@ -230,7 +230,7 @@ def put_pedido(pedido_id: str, email: bool = True, pedido = Body(...)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado.")
     if pedido_in_db['statusStep'] > pedido['statusStep']:
         raise HTTPException(status_code=status.HTTP_304_NOT_MODIFIED, detail="Pedido já foi aprovado por outro usuário. Favor atualizar a página.")
-    
+    print("Pedido status step: ", pedido['statusStep'])
     if pedido['statusStep'] != 6 and SEND_EMAIL and email: # Envia um email de acompanhamento (se não for a última etapa)
         send_email_acompanhamento(pedido, pedido_id)
 
