@@ -144,7 +144,7 @@ async def post_staged_pdf_info(data: dict = Body(...)):
     ato = "ERRO"
     if departamento == Departamentos.empresa:
         titulo = "compra"
-        ato = f"compra pela <b>{empresa_associada}</b>"
+        ato = f"compra por parte da própria empresa"
     elif departamento == Departamentos.demap:
         titulo = "compra"
         ato = f"compra pelo <b>Cartão Corporativo</b>"
@@ -156,6 +156,7 @@ async def post_staged_pdf_info(data: dict = Body(...)):
 
     info = {
         "pedido_number": pedido_number,
+        "empresa": empresa_associada,
         "titulo": titulo,
         "ato": ato
     }

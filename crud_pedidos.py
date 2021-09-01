@@ -108,7 +108,7 @@ def send_email_acompanhamento(_pedido, pedido_id):
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="O pedido não apresente o identificador de número.")
 
         if status_step <= 4: # Emails apenas para notificação
-            send_email_to_role(dests, pedido['number'], status_step)
+            send_email_to_role(dests, correct_empresa, pedido['number'], status_step)
 
         else: # Etapa 5 é email de attachment
             json_data = {

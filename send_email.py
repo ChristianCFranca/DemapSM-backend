@@ -46,14 +46,14 @@ def set_contents_for_compra(info):
         <div>
             <div>
                 {info['ato']}
-                O pedido de compra n°<b>{info['pedido_number']}</b> foi liberado para {info['ato']}.
+                O pedido de compra n°<b>{info['pedido_number']}</b> referente a empresa <b>{info['empresa']}</b> foi liberado para {info['ato']}.
             </div>
             <br>
             <div>
                 O pdf em anexo contém as informações necessárias.
             </div>
             <div>
-                Após a compra, lembrar de inserir os valores gastos na plataforma <a href=\"https://demapsm.herokuapp.com/andamentos/\">Demap SM</a> se for o caso para o pedido em questão.
+                Após a compra, lembrar de inserir os valores gastos na plataforma <a href=\"https://demapsm.herokuapp.com/\">Demap SM</a> se for o caso para o pedido em questão.
             </div>
         </div>
         """
@@ -99,19 +99,19 @@ def send_email_with_new_password(dest, user_id, new_password):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error in sending the email...")
 
 
-def send_email_to_role(dests, pedido_number, status_step):
+def send_email_to_role(dests, empresa, pedido_number, status_step):
     if DEVELOPMENT_ADM_EMAIL:
         dests = ["christian.franca@bcb.gov.br"]
 
     if status_step == 2:
-        subject = f"Novo pedido de compra n°{pedido_number} aguardando sua confirmação."
+        subject = f"Novo pedido de compra n°{pedido_number} da empresa {empresa}."
     else:
-        subject = f"Pedido de compra n°{pedido_number} aguardando sua confirmação."
+        subject = f"Pedido de compra n°{pedido_number} da {empresa} aguardando sua confirmação."
 
     if status_step == 2:
         content=f"""
         <div>
-            Um novo pedido de compra (n°<strong>{pedido_number}</strong>) foi registrado e está aguardando a sua <strong>confirmação</strong>.</div>
+            Um novo pedido de compra (n°<b>{pedido_number}</b>) da empresa <b>{empresa}</b> foi registrado e está aguardando a sua confirmação.</div>
         </div>
         <br>
         <div>
@@ -119,13 +119,13 @@ def send_email_to_role(dests, pedido_number, status_step):
         </div>
         <br>
         <div>
-            <a href=\"https://demapsm.herokuapp.com/andamentos/\">Demap SM Andamentos</a>
+            <a href=\"https://demapsm.herokuapp.com/\">Demap SM Andamentos</a>
         </div>
         """
     else:
         content=f"""
         <div>
-            O pedido de compra de n°<strong>{pedido_number}</strong> está aguardando a sua <strong>confirmação</strong>.</div>
+            O pedido de compra de n°<b>{pedido_number}</b> da empresa <b>{empresa}</b> está aguardando a sua confirmação.</div>
         </div>
         <br>
         <div>
@@ -133,7 +133,7 @@ def send_email_to_role(dests, pedido_number, status_step):
         </div>
         <br>
         <div>
-            <a href=\"https://demapsm.herokuapp.com/andamentos/\">Demap SM Andamentos</a>
+            <a href=\"https://demapsm.herokuapp.com/\">Demap SM Andamentos</a>
         </div>
         """
     
