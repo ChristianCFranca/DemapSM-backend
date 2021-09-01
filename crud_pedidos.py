@@ -130,7 +130,8 @@ def send_email_acompanhamento(_pedido, pedido_id):
             items_almoxarifado = list(filter(lambda item: item['almoxarifadoPossui'], json_data['document']['payload']['items']))
             
             if (len(items_demap) == 0 and len(items_empresa) == 0 and len(items_almoxarifado) == 0) or any(map(lambda item: item['direcionamentoDeCompra'] is None, json_data['document']['payload']['items'])):
-                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="\033[93m"+"PDF:" + "\033[0m" + f"\t  Almoxarifado não possui o item e/ou o direcionamento de compra não consta como \'Demap\' ou \'{correct_empresa}\'.")
+                if any(map(lambda item: item['categoria'] != 'Fixo', json_data['document']['payload']['items'])):
+                    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="\033[93m"+"PDF:" + "\033[0m" + f"\t  Almoxarifado não possui o item e/ou o direcionamento de compra não consta como \'Demap\' ou \'{correct_empresa}\'.")
             
             pdfs_ids = dict()
             if len(items_empresa) > 0:
@@ -147,8 +148,9 @@ def send_email_acompanhamento(_pedido, pedido_id):
                 json_data['document']['payload']['items'] = items_almoxarifado
                 res = stage_pdf(json_data, Departamentos.almoxarife)
                 pdfs_ids[Departamentos.almoxarife] = res["document"]["id"]
-
-            _pedido["pdfs_ids"] = pdfs_ids # Esta alteração altera o dicionário ORIGINAL, e não a CÓPIA. Isso fará com que, ao atualizar o pedido saindo desta função, o pedido tenha as informações de id's dos documentos correlacionados
+            
+            if pdfs_ids:
+                _pedido["pdfs_ids"] = pdfs_ids # Esta alteração altera o dicionário ORIGINAL, e não a CÓPIA. Isso fará com que, ao atualizar o pedido saindo desta função, o pedido tenha as informações de id's dos documentos correlacionados
 
 
 def map_pedidos_for_compra_demap():
