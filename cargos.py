@@ -13,5 +13,6 @@ class Departamentos(str, Enum):
     empresa = "empresa"
 
 emails_encarregados_por_empresa = {
-    "Engemil": "ricardo.furtuoso@bcb.gov.br"
+    "Engemil": ["ricardo.furtuoso@bcb.gov.br"],
+    "R7": ["joao.abadio@bcnet.bcb.gov.br", "demap.cirqueira@bcnet.bcb.gov.br"]
 }
