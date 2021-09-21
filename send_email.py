@@ -45,7 +45,6 @@ def set_contents_for_compra(info):
     content = f"""
         <div>
             <div>
-                {info['ato']}
                 O pedido de compra n°<b>{info['pedido_number']}</b> referente a empresa <b>{info['empresa']}</b> foi liberado para {info['ato']}.
             </div>
             <br>
