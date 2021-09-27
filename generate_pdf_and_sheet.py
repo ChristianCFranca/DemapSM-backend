@@ -22,6 +22,7 @@ else:
 BASE_URL = "https://api.pdfmonkey.io/api/v1/documents"
 AUTH_HEADER = {"Authorization": f"Bearer {PDFMONKEY_API_KEY}"}
 
+TEMPLATE_FOR_FATURAMENTO = "8e600f10-195a-4263-96dd-ecea6da316d7"
 TEMPLATES_FOR_COMPRA = {
     "demap": "1C6D60D1-B722-48E1-9B8C-3E116E4AC5D6".lower()
 }
@@ -33,6 +34,17 @@ TEMPLATES_FOR_DEPARTAMENTO = {
 TEMPLATES_TO_DEPARTAMENTOS = {value : key for key, value in TEMPLATES_FOR_DEPARTAMENTO.items()}
 
 # Funções --------------------------------------------------------------------------------------------------------------------------------
+
+def stage_pdf_faturamento(json_data):
+    json_data['document']['document_template_id'] = TEMPLATE_FOR_FATURAMENTO
+    for counter in range(5, 0, -1): # 5 tentativas
+        response = requests.post(BASE_URL, json=json_data, headers=AUTH_HEADER)
+        if response.status_code == 201 or response.status_code == 200:
+            print("\033[94mPDF:\033[0m" + f"\t  PDF postado para faturamento com sucesso.")
+            return response.json()
+        else:
+            print("\033[93mPDF:\033[0m" + f"\t  Não foi possível postar o PDF do faturamento. Tentando novamente... Tentativas restantes: {counter}")
+    raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Não foi possível postar a criação do PDF.")
 
 def stage_pdf(json_data, departamento):
     if departamento not in TEMPLATES_FOR_DEPARTAMENTO:
@@ -160,9 +172,6 @@ async def post_staged_pdf_info(data: dict = Body(...)):
         "titulo": titulo,
         "ato": ato
     }
-
     subject, content = set_contents_for_compra(info)
     print("\033[94mPDF:\033[0m" + "\t  Enviando...")
     send_email_with_pdf(subject, content, pdf_b64string, pdf_name, dests)
-
-    return
