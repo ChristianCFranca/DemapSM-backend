@@ -39,20 +39,20 @@ def is_same_month_year(string1: str, month: int, year: int):
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
 def get_materiais(faturamento_info: FaturamentoModel = Body(...)):
-    empresa = faturamento_info.get('empresa')
+    empresa = faturamento_info.empresa
     if not empresa:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empresa não foi fornecida no JSON.")
-    mes = faturamento_info.get('mes')
+    mes = faturamento_info.mes
     if not mes:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="O mês de faturamento não foi encontrado no JSON.")
     if not isinstance(mes, int) or mes < 1 or mes > 12:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="O mês informado não é valido.")
-    ano = faturamento_info.get('ano')
+    ano = faturamento_info.ano
     if not ano:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="O ano de faturamento não foi encontrado no JSON.")
     if not isinstance(ano, int):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="O ano informado não é valido.")
-    pedidos = getMateriais(faturamento_info['empresa'])
+    pedidos = getMateriais(faturamento_info.empresa)
     if not pedidos:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhum pedido encontrado para a empresa em questão.")
 
