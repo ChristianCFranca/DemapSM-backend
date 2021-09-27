@@ -35,7 +35,7 @@ def is_same_month_year(string1: str, month: int, year: int):
     return mes == month and ano == year
 
 def format_pedidos(pedidos):
-    if not isinstance(pedidos, dict):
+    if not isinstance(pedidos, list):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Pedidos não constitui um dicionário.")
     item_array = []
     for pedido in pedidos:
