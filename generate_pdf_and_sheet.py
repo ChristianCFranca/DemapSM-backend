@@ -122,7 +122,7 @@ async def post_staged_pdf_info(data: dict = Body(...)):
     template_id = data['document']['document_template_id']
     if TEMPLATES_TO_DEPARTAMENTOS.get(template_id) is None:
         print("\033[94mPDF:\033[0m" + f"\t  O template não existe para envio de emails. Assumindo pdf de download direto.")
-        raise HTTPException(status_code=status_code.HTTP_202_ACCEPTED, detail="O template não existe para o envio de email. Assumindo pdf de download direto.")
+        raise HTTPException(status_code=status_code.HTTP_200_OK, detail="O template não existe para o envio de email. Assumindo pdf de download direto.")
 
     departamento = TEMPLATES_TO_DEPARTAMENTOS[template_id]
 
