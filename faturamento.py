@@ -1,7 +1,7 @@
 from fastapi import HTTPException, APIRouter, status, Body, Depends
 from pydantic.main import BaseModel
 from auth import permissions_user_role, RoleName
-from crud_materiais import getMateriais
+from crud_pedidos import getPedidos
 from generate_pdf_and_sheet import stage_pdf_faturamento
 
 # Define nosso router
@@ -38,7 +38,7 @@ def is_same_month_year(string1: str, month: int, year: int):
     dependencies=[Depends(permissions_user_role(approved_roles=[
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
-def get_materiais(faturamento_info: FaturamentoModel = Body(...)):
+def get_faturamento(faturamento_info: FaturamentoModel = Body(...)):
     empresa = faturamento_info.empresa
     if not empresa:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empresa não foi fornecida no JSON.")
@@ -52,7 +52,7 @@ def get_materiais(faturamento_info: FaturamentoModel = Body(...)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="O ano de faturamento não foi encontrado no JSON.")
     if not isinstance(ano, int):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="O ano informado não é valido.")
-    pedidos = getMateriais(faturamento_info.empresa)
+    pedidos = getPedidos(faturamento_info.empresa)
     if len(pedidos) == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhum pedido encontrado para a empresa em questão.")
 
