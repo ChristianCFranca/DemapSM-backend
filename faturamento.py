@@ -39,7 +39,7 @@ def format_pedidos(pedidos):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Pedidos não constitui um dicionário.")
     item_array = []
     for pedido in pedidos:
-        item_array = [item for items in pedido['items']]
+        item_array = [item for item in pedido['items']]
     return item_array
         
 @router.post("/", summary="Post para obter faturamento", 
