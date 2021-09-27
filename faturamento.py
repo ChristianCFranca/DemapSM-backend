@@ -71,7 +71,7 @@ def get_faturamento(faturamento_info: FaturamentoModel = Body(...)):
     pedidos = list(filter(lambda pedido: is_same_month_year(pedido['dataPedido'], mes, ano), pedidos))
     if len(pedidos) == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhum pedido encontrado para a data fornecida.")
-    pedidos = format_pedidos(pedidos)
+    pedidos = format_pedidos(pedidos, empresa)
     if len(pedidos) == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhum pedido encontrado para a data fornecida.")
         
