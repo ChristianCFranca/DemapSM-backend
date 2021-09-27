@@ -56,6 +56,8 @@ def get_materiais(faturamento_info: FaturamentoModel = Body(...)):
     if len(pedidos) == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhum pedido encontrado para a empresa em questão.")
 
+    print(pedidos[0])
+        
     pedidos = list(filter(lambda pedido: is_same_month_year(pedido['dataPedido'], mes, ano), pedidos))
     if len(pedidos) == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhum pedido encontrado para a data fornecida.")
