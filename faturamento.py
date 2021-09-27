@@ -34,12 +34,16 @@ def is_same_month_year(string1: str, month: int, year: int):
     ano = int(string1.split('/')[2])
     return mes == month and ano == year
 
-def format_pedidos(pedidos):
+def format_pedidos(pedidos, empresa):
     if not isinstance(pedidos, list):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Pedidos não constitui um dicionário.")
     item_array = []
     for pedido in pedidos:
-        item_array = [item for item in pedido['items']]
+        for item in pedido['items']:
+            if not item['almoxarifadoPossui'] and item['direcionamentoDeCompra'] == empresa and item['recebido']: # Sob demandas recebidos pela empresa
+                item['os'] = pedido['os']
+                item['dataPedido'] = pedido['dataPedido']
+                item_array += [item]
     return item_array
         
 @router.post("/", summary="Post para obter faturamento", 
@@ -68,6 +72,8 @@ def get_faturamento(faturamento_info: FaturamentoModel = Body(...)):
     if len(pedidos) == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhum pedido encontrado para a data fornecida.")
     pedidos = format_pedidos(pedidos)
+    if len(pedidos) == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhum pedido encontrado para a data fornecida.")
         
     request = {
                 "document": {
