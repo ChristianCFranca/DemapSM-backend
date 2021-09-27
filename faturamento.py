@@ -53,7 +53,7 @@ def get_materiais(faturamento_info: FaturamentoModel = Body(...)):
     if not isinstance(ano, int):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="O ano informado não é valido.")
     pedidos = getMateriais(faturamento_info.empresa)
-    if not pedidos:
+    if len(pedidos) == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhum pedido encontrado para a empresa em questão.")
 
     pedidos = list(filter(lambda pedido: is_same_month_year(pedido['dataPedido'], mes, ano), pedidos))
