@@ -43,14 +43,15 @@ def format_pedidos(pedidos, empresa):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Pedidos não constitui um dicionário.")
     pedidos_array = []
     for pedido in pedidos:
-        rowspan = 0
-        item_array = []
-        for item in pedido['items']:
-            if not item['almoxarifadoPossui'] and item['direcionamentoDeCompra'] == empresa and item['recebido']: # Sob demandas recebidos pela empresa
-                rowspan += 1
-                item_array += [item]
-        if len(item_array) > 0:
-            pedidos_array.append({"rowspan": rowspan, "os": pedido['os'], "dataPedido": pedido['dataPedido'], "items": item_array})
+        if pedido['active']:
+            rowspan = 0
+            item_array = []
+            for item in pedido['items']:
+                if not item['almoxarifadoPossui'] and item['direcionamentoDeCompra'] == empresa and item['recebido']: # Sob demandas recebidos pela empresa
+                    rowspan += 1
+                    item_array += [item]
+            if len(item_array) > 0:
+                pedidos_array.append({"rowspan": rowspan, "os": pedido['os'], "dataPedido": pedido['dataPedido'], "items": item_array})
     return pedidos_array
         
 def check_if_fatura_exists(empresa, mes, ano):
