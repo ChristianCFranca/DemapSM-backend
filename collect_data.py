@@ -42,7 +42,7 @@ def collect_compra_demap():
 
 @router.post("/pdfs", summary="Get os links para download dos PDFs associados.",
     dependencies=[Depends(permissions_user_role(approved_roles=[
-            RoleName.admin, RoleName.fiscal, RoleName.assistente
+            RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.regular
             ]))])
 async def collect_pdfs(pdfs_ids: dict = Body(...)):
     pdfs_links = dict()
