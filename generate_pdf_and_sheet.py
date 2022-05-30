@@ -1,3 +1,4 @@
+from time import time
 from fastapi import status as status_code
 from fastapi import APIRouter, Body
 from fastapi.exceptions import HTTPException
@@ -8,6 +9,7 @@ from send_email import SEND_EMAIL, set_contents_for_compra, send_email_with_pdf
 from cargos import Departamentos, emails_encarregados_por_empresa
 from auth import get_dests
 import json
+import time
 
 # Define nosso router
 router = APIRouter(prefix="/pdf", tags=["Setar Continuidade no envio do PDF"])
@@ -63,13 +65,20 @@ def stage_pdf(json_data, departamento):
     raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Não foi possível postar a criação do PDF.")
 
 def get_pdf_link_for_download(pdf_id):
-    response = requests.get(f"{BASE_URL}/{pdf_id}", headers=AUTH_HEADER)
-    if response.status_code == 200:
-        return response.json()['document']['download_url']
-    elif response.status_code == 401:
-        raise HTTPException(status_code=status_code.HTTP_400_BAD_REQUEST, detail="Um dos ID's passados não existe nos PDFs do banco de dados.")
-    else:
-        raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ocorreu um erro ao tentar coletar os PDFs.")
+    for counter in range(5, 0, -1): # 5 tentativas
+        response = requests.get(f"{BASE_URL}/{pdf_id}", headers=AUTH_HEADER)
+        if response.status_code == 200:
+            if not response.json()['document']['download_url']:
+                print("\033[93mPDF:\033[0m" + f"\t  Link de download ainda não disponível. Tentando novamente... Tentativas restantes: {counter}")
+                time.sleep(1)
+                continue
+            print("\033[94mPDF:\033[0m" + f"\t  Link do PDF obtido para download com sucesso.")
+            return response.json()['document']['download_url']
+        elif response.status_code == 401:
+            raise HTTPException(status_code=status_code.HTTP_400_BAD_REQUEST, detail="Um dos ID's passados não existe nos PDFs do banco de dados.")
+        else:
+            raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ocorreu um erro ao tentar coletar os PDFs.")
+    raise HTTPException(status_code=status_code.HTTP_408_REQUEST_TIMEOUT, detail="O link para download não ficou disponível ainda. Tente mais tarde.")
 
 # Rota -----------------------------------------------------------------------------------------------------------------------------------
 

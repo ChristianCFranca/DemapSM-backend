@@ -12,7 +12,7 @@ router = APIRouter(prefix="/collect-data", tags=["Pedidos de Compra"])
 
 @router.post("/pdfs", summary="Obtem os links para download dos PDFs associados.",
     dependencies=[Depends(permissions_user_role(approved_roles=[
-            RoleName.admin, RoleName.fiscal, RoleName.assistente
+            RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.regular
             ]))])
 async def collect_pdfs(pdfs_ids: dict = Body(...)):
     pdfs_links = dict()
