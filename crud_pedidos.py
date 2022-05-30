@@ -88,6 +88,34 @@ def deletePedido(pedido_id):
     res = collection.delete_one(pedido_id)
     return res.deleted_count
 
+def generate_padronized_data_for_pdfmonkey(pedido):
+    return {
+                "document": {
+                    "document_template_id": None,
+                    "meta": {
+                        "_filename": f"pedido_de_compra_{pedido['number']}.pdf"
+                    },
+                    "payload": pedido,
+                    "status": "pending"
+                }
+            }
+
+def filter_valid_items_from_pedido(pedido):
+    # Itens de fixos não devem ser agregados na cobrança e itens aprovados pelo fiscal estão aprovados para compra
+    itens_do_pedido = pedido['items'].copy() # Lista
+    pedido['items'] = [item for item in itens_do_pedido if item['aprovadoFiscal'] and item['categoria'] != "Fixo"]
+
+    items_demap = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == "demap" and not item['almoxarifadoPossui'], pedido['items']))
+    items_empresa = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == pedido['empresa'].lower() and not item['almoxarifadoPossui'], pedido['items']))
+    items_almoxarifado = list(filter(lambda item: item['almoxarifadoPossui'], pedido['items']))
+
+    # Checa alguns erros possíveis
+    if (len(items_demap) == 0 and len(items_empresa) == 0 and len(items_almoxarifado) == 0) or any(map(lambda item: item['direcionamentoDeCompra'] is None, pedido['items'])):
+        if any(map(lambda item: item['categoria'] != 'Fixo', pedido['items'])):
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="\033[93m"+"PDF:" + "\033[0m" + f"\t  Almoxarifado não possui o item e/ou o direcionamento de compra não consta como \'Demap\' ou \'{pedido['empresa']}\'.")
+    
+    return items_demap, items_empresa, items_almoxarifado
+
 def send_email_acompanhamento(_pedido, pedido_id):
     if not 'empresa' in _pedido:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="A chave \'empresa\' não existe no pedido.")
@@ -111,47 +139,25 @@ def send_email_acompanhamento(_pedido, pedido_id):
             send_email_to_role(dests, correct_empresa, pedido['number'], status_step)
 
         else: # Etapa 5 é email de attachment
-            json_data = {
-                "document": {
-                    "document_template_id": None,
-                    "meta": {
-                        "_filename": f"pedido_de_compra_{pedido['_id']}.pdf"
-                    },
-                    "payload": pedido,
-                    "status": "pending"
-                }
-            }
-             # Os itens são filtrados pela aprovação do fiscal, o que significa que eles foram aprovados para serem comprados ou retirados
-             # Itens de procedência fixa também não devem ser agregados na cobrança
-            json_data['document']['payload']['items'] = [item for item in pedido['items'] if item['aprovadoFiscal'] and item['categoria'] != "Fixo"]
 
-            items_demap = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == "demap" and not item['almoxarifadoPossui'], json_data['document']['payload']['items']))
-            items_empresa = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == correct_empresa.lower() and not item['almoxarifadoPossui'], json_data['document']['payload']['items']))
-            items_almoxarifado = list(filter(lambda item: item['almoxarifadoPossui'], json_data['document']['payload']['items']))
-            
-            if (len(items_demap) == 0 and len(items_empresa) == 0 and len(items_almoxarifado) == 0) or any(map(lambda item: item['direcionamentoDeCompra'] is None, json_data['document']['payload']['items'])):
-                if any(map(lambda item: item['categoria'] != 'Fixo', json_data['document']['payload']['items'])):
-                    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="\033[93m"+"PDF:" + "\033[0m" + f"\t  Almoxarifado não possui o item e/ou o direcionamento de compra não consta como \'Demap\' ou \'{correct_empresa}\'.")
-            
+            items_demap, items_empresa, items_almoxarifado = filter_valid_items_from_pedido(pedido)
+
+            json_data = generate_padronized_data_for_pdfmonkey(pedido)
+
             pdfs_ids = dict()
-            if len(items_empresa) > 0:
-                json_data['document']['payload']['items'] = items_empresa
-                res = stage_pdf(json_data, Departamentos.empresa)
-                pdfs_ids[Departamentos.empresa] = res["document"]["id"]
+            # As funções abaixo alteram o dicionario original
+            stage_new_pdf_for_group(items_empresa, Departamentos.empresa, json_data, pdfs_ids)
+            stage_new_pdf_for_group(items_demap, Departamentos.demap, json_data, pdfs_ids)
+            stage_new_pdf_for_group(items_almoxarifado, Departamentos.almoxarife, json_data, pdfs_ids)
 
-            if len(items_demap) > 0:
-                json_data['document']['payload']['items'] = items_demap
-                res = stage_pdf(json_data, Departamentos.demap)
-                pdfs_ids[Departamentos.demap] = res["document"]["id"]
-
-            if len(items_almoxarifado) > 0:
-                json_data['document']['payload']['items'] = items_almoxarifado
-                res = stage_pdf(json_data, Departamentos.almoxarife)
-                pdfs_ids[Departamentos.almoxarife] = res["document"]["id"]
-            
-            if pdfs_ids:
+            if pdfs_ids: # Verifica se pelo menos um pdf foi setado para ir pro banco de dados
                 _pedido["pdfs_ids"] = pdfs_ids # Esta alteração altera o dicionário ORIGINAL, e não a CÓPIA. Isso fará com que, ao atualizar o pedido saindo desta função, o pedido tenha as informações de id's dos documentos correlacionados
 
+def stage_new_pdf_for_group(items, dept, json_data, pdfs_ids):
+    if len(items) > 0:
+        json_data['document']['payload']['items'] = items
+        res = stage_pdf(json_data, dept)
+        pdfs_ids[dept] = res["document"]["id"]
 
 def map_pedidos_for_compra_demap():
     pedidos = getPedidos()
@@ -239,6 +245,16 @@ def put_pedido(pedido_id: str, email: bool = True, pedido = Body(...)):
     res = putPedido(pedido_id, pedido) # pedido é um dict
     return {"alterado": res}
 
+@router.put("/direct/{pedido_id}", summary="Update pedido diretamente no DB", 
+    dependencies=[Depends(permissions_user_role(approved_roles=[
+        RoleName.admin
+        ]))])
+def put_pedido_direto(pedido_id: str, pedido = Body(...)):
+    pedido_in_db = getPedido(pedido_id)
+    if pedido_in_db is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado.")
+    res = putPedido(pedido_id, pedido) # pedido é um dict
+    return {"alterado": res}
 
 @router.delete("/{pedido_id}", summary="Delete pedido", 
     dependencies=[Depends(permissions_user_role(approved_roles=[
