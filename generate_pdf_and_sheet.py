@@ -5,6 +5,8 @@ from fastapi.exceptions import HTTPException
 import requests
 import base64
 import os
+
+from yaml import FlowMappingStartToken
 from send_email import SEND_EMAIL, set_contents_for_compra, send_email_with_pdf
 from cargos import Departamentos, emails_encarregados_por_empresa
 from auth import get_dests
@@ -34,6 +36,12 @@ TEMPLATES_TO_DEPARTAMENTOS = {value : key for key, value in TEMPLATES_FOR_DEPART
 
 # Funções --------------------------------------------------------------------------------------------------------------------------------
 
+def check_if_pdf_exists_by_id(pdf_id):
+    response = requests.get(f"{BASE_URL}/{pdf_id}", headers=AUTH_HEADER)
+    if response.status_code == 404:
+        return False
+    return True
+
 def delete_pdf_by_id(pdf_id):
     response = requests.delete(f"{BASE_URL}/{pdf_id}", headers=AUTH_HEADER)
     if response.status_code != 204:
@@ -49,7 +57,7 @@ def stage_pdf_faturamento(json_data):
             return response.json()
         else:
             print("\033[93mPDF:\033[0m" + f"\t  Não foi possível postar o PDF do faturamento. Tentando novamente... Tentativas restantes: {counter}")
-    raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Não foi possível postar a criação do PDF.")
+    raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Não foi possível postar o PDF para o serviço de PDFs.")
 
 def stage_pdf(json_data, departamento):
     if departamento not in TEMPLATES_FOR_DEPARTAMENTO:

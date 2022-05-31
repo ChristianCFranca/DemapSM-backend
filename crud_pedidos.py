@@ -88,17 +88,20 @@ def deletePedido(pedido_id):
     res = collection.delete_one(pedido_id)
     return res.deleted_count
 
-def generate_padronized_data_for_pdfmonkey(pedido):
+def generate_padronized_data_for_pdfmonkey(payload, filename):
     return {
                 "document": {
                     "document_template_id": None,
                     "meta": {
-                        "_filename": f"pedido_de_compra_{pedido['number']}.pdf"
+                        "_filename": f"{filename}.pdf"
                     },
-                    "payload": pedido,
+                    "payload": payload,
                     "status": "pending"
                 }
             }
+
+def get_name_padrao_para_pedido(suffix):
+    return f"pedido_de_compra_{suffix}"
 
 def filter_valid_items_from_pedido(pedido):
     # Itens de fixos não devem ser agregados na cobrança e itens aprovados pelo fiscal estão aprovados para compra
@@ -142,7 +145,8 @@ def send_email_acompanhamento(_pedido, pedido_id):
 
             items_demap, items_empresa, items_almoxarifado = filter_valid_items_from_pedido(pedido)
 
-            json_data = generate_padronized_data_for_pdfmonkey(pedido)
+            filename = get_name_padrao_para_pedido(pedido['number'])
+            json_data = generate_padronized_data_for_pdfmonkey(pedido, filename)
 
             pdfs_ids = dict()
             # As funções abaixo alteram o dicionario original

@@ -5,7 +5,7 @@ from cargos import RoleName, Departamentos
 
 from generate_pdf_and_sheet import get_pdf_link_for_download, delete_pdf_by_id
 
-from crud_pedidos import getPedido, putPedido, generate_padronized_data_for_pdfmonkey, stage_new_pdf_for_group, filter_valid_items_from_pedido
+from crud_pedidos import getPedido, putPedido, generate_padronized_data_for_pdfmonkey, stage_new_pdf_for_group, filter_valid_items_from_pedido, get_name_padrao_para_pedido
 
 # Define nosso router
 router = APIRouter(prefix="/collect-data", tags=["Pedidos de Compra"])
@@ -34,7 +34,8 @@ def redo_pdfs(pedido_id: str, pedido = Body(...)):
 
     # Filtra os itens validos do pedido
     items_demap, items_empresa, items_almoxarifado = filter_valid_items_from_pedido(pedido)
-    json_data = generate_padronized_data_for_pdfmonkey(pedido)
+    filename = get_name_padrao_para_pedido(pedido['number'])
+    json_data = generate_padronized_data_for_pdfmonkey(pedido, filename)
 
     pdfs_ids = dict() # pdfs_ids é povoado com os novos ids respectivos
     # As funções abaixo alteram o dicionario original
