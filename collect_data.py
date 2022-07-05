@@ -65,7 +65,7 @@ def formata_materiais(materiais_dict):
     dependencies=[Depends(permissions_user_role(approved_roles=[
             RoleName.admin, RoleName.fiscal, RoleName.assistente
             ]))])
-async def collect_quantitativos(empresa: str, mes: int = Query(gt=0, lt=13), ano: int = Query(gt=2000, lt=3000)):
+async def collect_quantitativos(empresa: str, mes: int = Query(default=5, gt=0, lt=13), ano: int = Query(default=2021, gt=2000, lt=3000)):
     todos_pedidos = getPedidos(empresa=empresa) # Esses são só os pedidos
     if not todos_pedidos:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Pedidos não encontrados para a empresa {empresa}.")
