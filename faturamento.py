@@ -78,19 +78,19 @@ def get_info_faturamento_empresa(empresa):
     custos_indiretos = empresa.get('custosIndiretos')
     if not custos_indiretos:
         custos_indiretos = 0
-    if not isinstance(custos_indiretos, float):
+    elif not isinstance(custos_indiretos, float):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Custos indiretos não é um float.")
 
     lucro = empresa.get('lucro')
     if not lucro:
         lucro = 0
-    if not isinstance(lucro, float):
+    elif not isinstance(lucro, float):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Lucro não é um float.")
 
     tributos = empresa.get('tributos')
     if not tributos:
         tributos = 0
-    if not isinstance(tributos, float):
+    elif not isinstance(tributos, float):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Tributos não é um float.")
 
     return custos_indiretos, lucro, tributos
