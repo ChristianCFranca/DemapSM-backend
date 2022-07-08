@@ -135,7 +135,8 @@ def redo_pdfs(pedido_id: str, pedido = Body(...)):
 
     # Se res TRUE, quer dizer que a alteração foi um sucesso e os arquivos antigos de PDFs gerados podem ser apagados
     if res:
-        for pdf_id in old_pdfs_ids.values():
-            delete_pdf_by_id(pdf_id)
+        if old_pdfs_ids: # Verifica se old_pdfs_ids não é null. Isso pode acontecer nos casos em que os PDFs não foram gerados automaticamente antes
+            for pdf_id in old_pdfs_ids.values():
+                delete_pdf_by_id(pdf_id)
 
     return {"pdfs_ids": pdfs_ids}
