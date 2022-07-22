@@ -93,7 +93,12 @@ def get_info_faturamento_empresa(empresa):
     elif not isinstance(tributos, float):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Tributos não é um float.")
 
-    return custos_indiretos, lucro, tributos
+    bdi = empresa.get('bdi')
+    if bdi:
+        if not isinstance(tributos, float):
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="BDI não é um float.")
+        
+    return custos_indiretos, lucro, tributos, bdi
 
 # Rotas ---------------------------------------------------------------------------------------------------------------------
 
@@ -111,7 +116,7 @@ def get_faturamento(faturamento_info: FaturamentoModel = Body(...)):
     if not empresa_existe:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empresa fornecida não existe.")
 
-    custos_indiretos, lucro, tributos = get_info_faturamento_empresa(empresa_existe)
+    custos_indiretos, lucro, tributos, bdi = get_info_faturamento_empresa(empresa_existe)
 
     pedidos = getPedidos(faturamento_info.empresa)
     pedidos_filtered_mes_ano = list(filter(lambda pedido: is_same_month_year(pedido['dataPedido'], mes, ano), pedidos))
@@ -122,11 +127,39 @@ def get_faturamento(faturamento_info: FaturamentoModel = Body(...)):
 
     # Calcula os valores corretos de cada termo para cada empresa
     valor_total = sum(map(lambda pedido: sum(map(lambda item: item['valorTotal'], pedido['items'])), pedidos_fmt))
-    valor_ci = valor_total*custos_indiretos
-    valor_lucro = valor_total*lucro*(1 + custos_indiretos)
-    valor_s1 = valor_total + valor_ci + valor_lucro
-    valor_final = valor_s1 / (1 - tributos)
-    valor_trib = valor_final - valor_s1
+    filename = f"faturamento_{mes}-{ano}"
+    if bdi:
+        valor_BDI = bdi*valor_total # Calcula mas não será usado se não houver o BDI
+        valor_final = valor_total + valor_BDI
+        payload = {
+            'infoMes': f"{MONTH_DICT.get(mes)}/{ano}",
+            'pedidos': pedidos_fmt,
+            'valorTotal': valor_total,
+            'empresa': empresa_existe['nome'],
+            'bdi': bdi,
+            'valorBDI': valor_BDI,
+            'valorFinal': valor_final
+        }
+    else:
+        valor_ci = valor_total*custos_indiretos
+        valor_lucro = valor_total*lucro*(1 + custos_indiretos)
+        valor_s1 = valor_total + valor_ci + valor_lucro
+        valor_final = valor_s1 / (1 - tributos)
+        valor_trib = valor_final - valor_s1
+        payload = {
+            'infoMes': f"{MONTH_DICT.get(mes)}/{ano}",
+            'pedidos': pedidos_fmt,
+            'valorTotal': valor_total,
+            'empresa': empresa_existe['nome'],
+            'valorCI': valor_ci,
+            'valorLucro': valor_lucro,
+            'valorTrib': valor_trib,
+            'custosIndiretos': custos_indiretos,
+            'lucro': lucro,
+            'tributos': tributos,
+            'valorFinal': valor_final
+        }
+
 
     pdf_id = check_if_fatura_exists(empresa, mes, ano)
     # Se já existir uma fatura para a empresa, deleta e cria uma nova
@@ -135,20 +168,6 @@ def get_faturamento(faturamento_info: FaturamentoModel = Body(...)):
         if pdf_exists:
             pdf_link = delete_pdf_by_id(pdf_id)
 
-    filename = f"faturamento_{mes}-{ano}"
-    payload = {
-        'infoMes': f"{MONTH_DICT.get(mes)}/{ano}",
-        'pedidos': pedidos_fmt,
-        'valorTotal': valor_total,
-        'empresa': empresa_existe['nome'],
-        'valorCI': valor_ci,
-        'valorLucro': valor_lucro,
-        'valorTrib': valor_trib,
-        'custosIndiretos': custos_indiretos,
-        'lucro': lucro,
-        'tributos': tributos,
-        'valorFinal': valor_final
-    }
     request = generate_padronized_data_for_pdfmonkey(payload, filename)
     response = stage_pdf_faturamento(request)
     id_pdf_fatura = response["document"]["id"]
