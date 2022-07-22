@@ -95,7 +95,7 @@ def get_info_faturamento_empresa(empresa):
 
     bdi = empresa.get('bdi')
     if bdi:
-        if not isinstance(tributos, float):
+        if not isinstance(bdi, float):
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="BDI não é um float.")
         
     return custos_indiretos, lucro, tributos, bdi
