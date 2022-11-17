@@ -106,15 +106,15 @@ def get_name_padrao_para_pedido(suffix):
 def filter_valid_items_from_pedido(pedido):
     # Itens de fixos não devem ser agregados na cobrança e itens aprovados pelo fiscal estão aprovados para compra
     itens_do_pedido = pedido['items'].copy() # Lista
-    pedido['items'] = [item for item in itens_do_pedido if item['aprovadoFiscal'] and item['categoria'] != "Fixo"]
+    itens_do_pedido = [item for item in itens_do_pedido if item['aprovadoFiscal'] and item['categoria'] != "Fixo"]
 
-    items_demap = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == "demap" and not item['almoxarifadoPossui'], pedido['items']))
-    items_empresa = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == pedido['empresa'].lower() and not item['almoxarifadoPossui'], pedido['items']))
-    items_almoxarifado = list(filter(lambda item: item['almoxarifadoPossui'], pedido['items']))
+    items_demap = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == "demap" and not item['almoxarifadoPossui'], itens_do_pedido))
+    items_empresa = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == pedido['empresa'].lower() and not item['almoxarifadoPossui'], itens_do_pedido))
+    items_almoxarifado = list(filter(lambda item: item['almoxarifadoPossui'], itens_do_pedido))
 
     # Checa alguns erros possíveis
-    if (len(items_demap) == 0 and len(items_empresa) == 0 and len(items_almoxarifado) == 0) or any(map(lambda item: item['direcionamentoDeCompra'] is None, pedido['items'])):
-        if any(map(lambda item: item['categoria'] != 'Fixo', pedido['items'])):
+    if (len(items_demap) == 0 and len(items_empresa) == 0 and len(items_almoxarifado) == 0) or any(map(lambda item: item['direcionamentoDeCompra'] is None, itens_do_pedido)):
+        if any(map(lambda item: item['categoria'] != 'Fixo', itens_do_pedido)):
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="\033[93m"+"PDF:" + "\033[0m" + f"\t  Almoxarifado não possui o item e/ou o direcionamento de compra não consta como \'Demap\' ou \'{pedido['empresa']}\'.")
     
     return items_demap, items_empresa, items_almoxarifado
