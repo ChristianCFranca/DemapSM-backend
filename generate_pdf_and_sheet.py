@@ -85,8 +85,8 @@ def get_pdf_link_for_download(pdf_id):
                 continue
             print("\033[94mPDF:\033[0m" + f"\t  Link do PDF obtido para download com sucesso.")
             return response.json()['document']['download_url']
-        elif response.status_code == 401:
-            raise HTTPException(status_code=status_code.HTTP_400_BAD_REQUEST, detail="Um dos ID's passados não existe nos PDFs do banco de dados.")
+        elif response.status_code == 401 or response.status_code == 404:
+            raise HTTPException(status_code=response.status_code, detail="Um ou mais ID's passados não existe nos PDFs do banco de dados.")
         else:
             raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ocorreu um erro ao tentar coletar os PDFs.")
     raise HTTPException(status_code=status_code.HTTP_408_REQUEST_TIMEOUT, detail="O link para download não ficou disponível ainda. Tente mais tarde.")
