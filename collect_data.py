@@ -106,7 +106,7 @@ async def collect_pdfs(pdfs_ids: dict = Body(...)):
 
 @router.put("/redo-pdfs/{pedido_id}", summary="Remonta os PDFs para o pedido em questão.",
     dependencies=[Depends(permissions_user_role(approved_roles=[
-            RoleName.admin, RoleName.fiscal
+            RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.regular
             ]))])
 def redo_pdfs(pedido_id: str, pedido = Body(...)):
     pedido_in_db = getPedido(pedido_id) # Verifica se existe o pedido
