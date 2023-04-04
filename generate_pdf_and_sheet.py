@@ -77,6 +77,7 @@ def stage_pdf(json_data, departamento):
 def get_pdf_link_for_download(pdf_id):
     for counter in range(5, 0, -1): # 5 tentativas
         response = requests.get(f"{BASE_URL}/{pdf_id}", headers=AUTH_HEADER)
+        print(response.status_code)
         if response.status_code == 200:
             if not response.json()['document']['download_url']:
                 print("\033[93mPDF:\033[0m" + f"\t  Link de download ainda não disponível. Tentando novamente... Tentativas restantes: {counter}")
