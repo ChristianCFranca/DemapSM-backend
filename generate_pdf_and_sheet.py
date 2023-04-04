@@ -43,6 +43,7 @@ def check_if_pdf_exists_by_id(pdf_id):
     return True
 
 def delete_pdf_by_id(pdf_id):
+    print(f"Apagando o pdf de id: {pdf_id}")
     response = requests.delete(f"{BASE_URL}/{pdf_id}", headers=AUTH_HEADER)
     if response.status_code != 204:
         errors = response.json()['errors']
