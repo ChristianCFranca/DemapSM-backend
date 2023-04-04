@@ -44,7 +44,7 @@ def check_if_pdf_exists_by_id(pdf_id):
 
 def delete_pdf_by_id(pdf_id):
     response = requests.delete(f"{BASE_URL}/{pdf_id}", headers=AUTH_HEADER)
-    if response.status_code != 204:
+    if response.status_code != 204 or response.status_code != 404:
         errors = response.json()['errors'][0]
         raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Não foi possível apagar o PDF: {errors['detail']}")
 
