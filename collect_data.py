@@ -117,7 +117,7 @@ def redo_pdfs(pedido_id: str, pedido = Body(...)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado.")
 
     # Verificação de alteração nos itens
-    if len(pedido_original['items']) != len(pedido_in_db['items'])
+    if len(pedido_original['items']) != len(pedido_in_db['items']):
         raise HTTPException(status_code=400, detail="A quantidade de itens enviados ao servidor pelo FE está diferente da quantidade presente no BE. Não é possível concluir a solicitação.")
         
     # Obtem os ids dos pdfs antigos, caso existam. Se tudo ocorrer bem com a atualização, eles serão deletados
@@ -135,7 +135,7 @@ def redo_pdfs(pedido_id: str, pedido = Body(...)):
     stage_new_pdf_for_group(items_almoxarifado, Departamentos.almoxarife, json_data, pdfs_ids)
     
     # Verificação de alteração nos itens
-    if len(pedido_original['items']) != len(pedido_in_db['items'])
+    if len(pedido_original['items']) != len(pedido_in_db['items']):
         raise HTTPException(status_code=400, detail="A quantidade de itens enviados ao servidor pelo FE está diferente da quantidade presente no BE. Não é possível concluir a solicitação.")
     
     # Agora pdfs_ids contem os novos pdfs para cada um dos itens alterados do pedido
