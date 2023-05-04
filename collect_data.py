@@ -109,10 +109,17 @@ async def collect_pdfs(pdfs_ids: dict = Body(...)):
             RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.regular
             ]))])
 def redo_pdfs(pedido_id: str, pedido = Body(...)):
+    # Salva o pedido original para que nada se altere quanto as informações originais
+    pedido_original = pedido.copy()
+    
     pedido_in_db = getPedido(pedido_id) # Verifica se existe o pedido
     if pedido_in_db is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado.")
 
+    # Verificação de alteração nos itens
+    if len(pedido_original['items']) != len(pedido_in_db['items'])
+        raise HTTPException(status_code=400, detail="A quantidade de itens enviados ao servidor pelo FE está diferente da quantidade presente no BE. Não é possível concluir a solicitação.")
+        
     # Obtem os ids dos pdfs antigos, caso existam. Se tudo ocorrer bem com a atualização, eles serão deletados
     old_pdfs_ids = pedido.get('pdfs_ids') 
 
@@ -126,12 +133,16 @@ def redo_pdfs(pedido_id: str, pedido = Body(...)):
     stage_new_pdf_for_group(items_empresa, Departamentos.empresa, json_data, pdfs_ids)
     stage_new_pdf_for_group(items_demap, Departamentos.demap, json_data, pdfs_ids)
     stage_new_pdf_for_group(items_almoxarifado, Departamentos.almoxarife, json_data, pdfs_ids)
-
+    
+    # Verificação de alteração nos itens
+    if len(pedido_original['items']) != len(pedido_in_db['items'])
+        raise HTTPException(status_code=400, detail="A quantidade de itens enviados ao servidor pelo FE está diferente da quantidade presente no BE. Não é possível concluir a solicitação.")
+    
     # Agora pdfs_ids contem os novos pdfs para cada um dos itens alterados do pedido
-    pedido['pdfs_ids'] = pdfs_ids
+    pedido_original['pdfs_ids'] = pdfs_ids
+    del pedido_original['_id'] # Deleta a key de _id para não ocorrer conflito
 
-    del pedido['_id'] # Deleta a key de _id para não ocorrer conflito
-    res = putPedido(pedido_id, pedido) # pedido é um dict
+    res = putPedido(pedido_id, pedido_original) # pedido é um dict
 
     # Se res TRUE, quer dizer que a alteração foi um sucesso e os arquivos antigos de PDFs gerados podem ser apagados
     if res:
