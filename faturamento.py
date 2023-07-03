@@ -119,11 +119,14 @@ def get_faturamento(faturamento_info: FaturamentoModel = Body(...)):
     custos_indiretos, lucro, tributos, bdi = get_info_faturamento_empresa(empresa_existe)
 
     pedidos = getPedidos(faturamento_info.empresa)
+    if len(pedidos) == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="A empresa não possui nenhum pedido cadastrado.")
     pedidos_filtered_mes_ano = list(filter(lambda pedido: is_same_month_year(pedido['dataPedido'], mes, ano), pedidos))
+    if len(pedidos_filtered_mes_ano) == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhum pedido encontrado para o período fornecido.")
     pedidos_fmt = format_pedidos(pedidos_filtered_mes_ano, empresa)
-
-    if len(pedidos) == 0 or len(pedidos_filtered_mes_ano) == 0 or len(pedidos_fmt) == 0:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhum pedido encontrado para a data fornecida.")
+    if len(pedidos_fmt) == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Existem pedidos para o período mas nenhum foi recebido.")
 
     # Calcula os valores corretos de cada termo para cada empresa
     valor_total = sum(map(lambda pedido: sum(map(lambda item: item['valorTotal'], pedido['items'])), pedidos_fmt))
