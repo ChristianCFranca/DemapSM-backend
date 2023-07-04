@@ -297,12 +297,16 @@ def insert_new_user_if_not_exist(user: UserInDB):
         )
     return user_inserted
 
+def format_username(username):
+    fmtd_username = username.lower().strip()
+    return fmtd_username
+
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # A autenticação começa aqui. Se tudo der certo, a resposta é do modelo {"token": SEU_TOKEN, "token_type": "bearer"}
 @router.post("/token", response_model=UserWithToken)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()): # Utiliza a dependencia OAuth2PasswordRequestForm, que captura as informacoes no padrao OAuth2 (form-data, etc)
-    user = authenticate_user(form_data.username, form_data.password) # Tenta autenticar esse usuario com o usuario e o password. Só funciona se o usuário já existe
+    user = authenticate_user(format_username(form_data.username), form_data.password) # Tenta autenticar esse usuario com o usuario e o password. Só funciona se o usuário já existe
     if not user: # A função anterior retorna None se o usuário não existir no banco de dados ou existir e a senha estiver errada
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, # Status code de não autorizado
