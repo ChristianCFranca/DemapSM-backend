@@ -12,7 +12,7 @@ from crud_materiais import getMateriais
 # Define nosso router
 router = APIRouter(prefix="/collect-data", tags=["Pedidos de Compra"])
 
-def filter_pedidos_por_mes_ano(pedidos, mes_de_inicio: int, ano: int):
+def filter_pedidos_anualmente(pedidos, mes_de_inicio: int, ano: int):
     filtrados_ano_1 = list(filter(lambda pedido: int(pedido['dataPedido'].split('/')[-1]) == ano and int(pedido['dataPedido'].split('/')[-2]) >= mes_de_inicio, pedidos))
     if mes_de_inicio > 1:
         return filtrados_ano_1
@@ -20,12 +20,28 @@ def filter_pedidos_por_mes_ano(pedidos, mes_de_inicio: int, ano: int):
         # Pega os meses que faltaram no ano seguinte
         return filtrados_ano_1 + list(filter(lambda pedido: int(pedido['dataPedido'].split('/')[-1]) == ano + 1 and int(pedido['dataPedido'].split('/')[-2]) < mes_de_inicio, pedidos))
 
+def filter_pedidos_mes_e_ano(pedidos, mes: int, ano: int):
+    return list(filter(lambda pedido: int(pedido['dataPedido'].split('/')[-1]) == ano and int(pedido['dataPedido'].split('/')[-2]) == mes, pedidos))
+    
 def filter_materiais_ja_recebidos(materiais):
     return list(filter(lambda material: material['recebido'], materiais))
 
 def filter_pedidos_validos(pedidos, empresa):
     pedidos_validos = list(map(lambda pedido: pedido['items'], list(filter(lambda pedido: pedido['active'] and pedido['empresa'] == empresa, pedidos))))
     return [item for sublist in pedidos_validos for item in sublist]
+
+def filter_pedidos_finalizados(pedidos):
+    filtered_pedidos = list(filter(lambda pedido: pedido['active'] and pedido['statusStep'] == 6, pedidos))
+    for filtered_pedido in filtered_pedidos:
+        for item in filtered_pedido['items']:
+            item['number'] = filtered_pedido['number']
+            item['os'] = filtered_pedido['os']
+            item['dataPedido'] = filtered_pedido['dataPedido']
+    pedidos_validos = list(map(lambda pedido: pedido['items'], filtered_pedidos))
+    return [item for sublist in pedidos_validos for item in sublist]
+
+def filter_items_comprados_por_cartao_corporativo(items):
+    return list(filter(lambda item: item['direcionamentoDeCompra'] == 'Demap' and not item['almoxarifadoPossui'], items))
 
 def filter_materiais_contratuais(materiais):
     return list(filter(lambda material: material['categoria'] == "Fixo" or material['categoria'] == "Sob Demanda", materiais))
@@ -60,17 +76,33 @@ def formata_materiais(materiais_dict):
             })
     return materiais
 
+def formata_items_cartao_corp(items_list):
+    items = list()
+    for item in items_list:
+        items.append({
+            'nome': item['nome'],
+            'quantidade': item['quantidade'],
+            'unidade': item['unidade'],
+            'os': item['os'],
+            'pedido': item['number'],
+            'valorGasto': item['valorGasto'],
+            'dataPedido': item['dataPedido']
+            })
+    return items
 
-@router.get("/quantitativos", summary="Obtem uma lista de objetos relacionados aos quantitativos de consumo de materiais de uma determinada empresa.",
+# -----------------------------------------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------------------------------------------------
+
+@router.get("/quantitativosEmpresa", summary="Obtem uma lista de objetos relacionados aos quantitativos de compras no cartão corporativo.",
     dependencies=[Depends(permissions_user_role(approved_roles=[
             RoleName.admin, RoleName.fiscal, RoleName.assistente
             ]))])
 async def collect_quantitativos(empresa: str, mes: int = Query(default=5, gt=0, lt=13), ano: int = Query(default=2021, gt=2000, lt=3000)):
-    todos_pedidos = getPedidos(empresa=empresa) # Esses são só os pedidos
+    todos_pedidos = getPedidos() # Obtém todos os pedidos
     if not todos_pedidos:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Pedidos não encontrados para a empresa {empresa}.")
     for pedido in todos_pedidos:
-        pedido['_id'] = str(pedido['_id'])
+        pedido['_id'] = str(pedido['_id']) # Corrige o pedido _id
 
     todos_materiais = getMateriais(empresa=empresa) # Esses são só os materiais
     if not todos_materiais:
@@ -79,7 +111,7 @@ async def collect_quantitativos(empresa: str, mes: int = Query(default=5, gt=0, 
         material['_id'] = str(material['_id'])
 
     # Etapa 1: Obter os pedidos da epoca correta
-    pedidos_epoca_correta = filter_pedidos_por_mes_ano(todos_pedidos, mes, ano)
+    pedidos_epoca_correta = filter_pedidos_anualmente(todos_pedidos, mes, ano)
     # Etapa 2: Obter os materiais requisitados de pedidos ativos e validos da epoca correta
     materiais_na_epoca = filter_pedidos_validos(pedidos_epoca_correta, empresa)
     # Etapa 3: Obter apenas os materiais que foram recebidos nessa epoca
@@ -93,6 +125,29 @@ async def collect_quantitativos(empresa: str, mes: int = Query(default=5, gt=0, 
     # Etapa 7: Formatar o dicionario para transformá-lo em uma lista
     materiais_final = formata_materiais(materiais_com_qtde_anual)
     return materiais_final
+
+@router.get("/quantitativosCartao", summary="Obtem uma lista de objetos relacionados aos quantitativos de consumo de materiais de uma determinada empresa.",
+    dependencies=[Depends(permissions_user_role(approved_roles=[
+            RoleName.admin, RoleName.fiscal, RoleName.assistente
+            ]))])
+async def collect_quantitativos(mes: int = Query(default=5, gt=0, lt=13), ano: int = Query(default=2021, gt=2000, lt=3000)):
+    todos_pedidos = getPedidos() # Esses são só os pedidos da empresa especifica
+    if not todos_pedidos:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"O sistema não retornou nenhum pedido ao buscar.")
+    for pedido in todos_pedidos:
+        pedido['_id'] = str(pedido['_id'])
+
+    # Etapa 1: Obter os pedidos da epoca correta
+    pedidos_epoca_correta = filter_pedidos_mes_e_ano(todos_pedidos, mes, ano)
+    # Etapa 2: Obter quais desses pedidos estão ativos e foram finalizados corretamente
+    items_finalizados = filter_pedidos_finalizados(pedidos_epoca_correta)
+    # Etapa 3: Obter apenas os items que foram adquiridos por cartão corporativo
+    items_do_cartao_corporativo = filter_items_comprados_por_cartao_corporativo(items_finalizados)
+    if not items_do_cartao_corporativo:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Não há itens comprados pelo cartão para a data fornecida.")
+    # Etapa 4: Formatar o dicionario para transformá-lo em uma lista
+    items_final = formata_items_cartao_corp(items_do_cartao_corporativo)
+    return items_final
 
 @router.post("/pdfs", summary="Obtem os links para download dos PDFs associados.",
     dependencies=[Depends(permissions_user_role(approved_roles=[
