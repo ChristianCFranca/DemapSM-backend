@@ -79,6 +79,8 @@ def postPedido(pedido):
 
 def putPedido(pedido_id, update_pedido):
     pedido_id = {"_id": ObjectId(pedido_id)}
+    if '_id' in update_pedido:
+        del update_pedido['_id']
     update_pedido = {"$set": update_pedido}
     res = collection.update_one(pedido_id, update_pedido)
     return res.modified_count
@@ -102,6 +104,51 @@ def generate_padronized_data_for_pdfmonkey(payload, filename):
 
 def get_name_padrao_para_pedido(suffix):
     return f"pedido_de_compra_{suffix}"
+    
+def get_item_diverso(pedido, item):
+    return {
+        'descricao': item['nome'].lower().capitalize().strip(),
+        'inseridoEm': pedido['dataPedido'],
+        'unidadeSugerida': item['unidade'],
+        'quantitativos': {
+              str(pedido['number']): float(item['quantidade'])
+            }
+        }
+
+def insert_itens_diversos(pedido):
+    # Lista
+    itens_do_pedido = pedido['items'].copy()
+    # Filtra os itens que são apenas do DEMAP SM
+    items_demap = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == "demap" and not item['almoxarifadoPossui'], itens_do_pedido))
+    # Se não houverem itens comprados pelo Cartão Corporativo, pode retornar
+    if (len(items_demap) == 0):
+        return
+    
+    # Gambiarra que eu não gostaria de ter feito mas paciência
+    collection = db['itens-diversos']
+    for item in items_demap:
+        nome_do_item = item['nome'].lower().strip().capitalize()
+        existing = collection.find_one({'descricao': nome_do_item})
+        if existing:
+            existing_id = {"_id": ObjectId(existing['_id'])}
+            del existing['_id'] # Remove a chave _id que não pode ser enviada junto
+            existing['quantitativos'][str(pedido['number'])] = float(item['quantidade'])
+            existing = {"$set": existing}
+            res = collection.update_one(existing_id, existing)
+            if (res.modified_count):
+                print("\033[94m"+"ITENS-DIVERSOS-UPDATE:" + "\033[0m" + f"\t  O item de nome '{nome_do_item}' foi atualizado com sucesso.")
+            else:
+                print("\033[93m"+"ITENS-DIVERSOS-UPDATE:" + "\033[0m" + f"\t  O '{nome_do_item}' não pôde ser atualizado nos 'itens-diversos'. Provavelmente o pedido está repetido.")
+        else:
+            novo_item = get_item_diverso(pedido, item)
+            res = collection.insert_one(novo_item)
+            if (res):
+                print("\033[94m"+"ITENS-DIVERSOS-CREATE:" + "\033[0m" + f"\t  O item de nome '{nome_do_item}' foi criado e inserido com sucesso.")
+            else:
+                print("\033[93m"+"ITENS-DIVERSOS-CREATE:" + "\033[0m" + f"\t  O '{nome_do_item}' não pôde ser criado nos 'itens-diversos'. Provavelmente o pedido está repetido.")
+
+    collection = db[COLLECTION]
+    return
 
 def filter_valid_items_from_pedido(pedido):
     # Itens de fixos não devem ser agregados na cobrança e itens aprovados pelo fiscal estão aprovados para compra
@@ -220,7 +267,7 @@ def get_pedidos_for_compra():
     pedidos_para_comprar = map_pedidos_for_compra_demap()
     return pedidos_para_comprar
 
-
+# Cria o pedido
 @router.post("/", summary="Post pedido", 
     dependencies=[Depends(permissions_user_role(approved_roles=[
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
@@ -232,6 +279,7 @@ def post_pedido(pedido = Body(...)):
     return {"_id": pedido_id}
 
 
+# Atualiza o pedido
 @router.put("/{pedido_id}", summary="Update pedido", 
     dependencies=[Depends(permissions_user_role(approved_roles=[
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
@@ -243,9 +291,13 @@ def put_pedido(pedido_id: str, email: bool = True, pedido = Body(...)):
     if pedido_in_db['statusStep'] > pedido['statusStep']:
         raise HTTPException(status_code=status.HTTP_304_NOT_MODIFIED, detail="Pedido já foi aprovado por outro usuário. Favor atualizar a página.")
 
-    if pedido['statusStep'] != 6 and SEND_EMAIL and email: # Envia um email de acompanhamento (se não for a última etapa)
-        send_email_acompanhamento(pedido, pedido_id)
+    # Desativado temporariamente
+    #if pedido['statusStep'] != 6 and SEND_EMAIL and email: # Envia um email de acompanhamento (se não for a última etapa)
+    #    send_email_acompanhamento(pedido, pedido_id)
 
+    # Verifica se tem itens novos para adicionar no DB relevante
+    if pedido['statusStep'] == 6:
+        insert_itens_diversos(pedido)
     res = putPedido(pedido_id, pedido) # pedido é um dict
     return {"alterado": res}
 
