@@ -112,7 +112,7 @@ def get_item_diverso(pedido, item):
         'unidadeSugerida': item['unidade'],
         'quantitativos': {
               str(pedido['number']): {
-                'quantidade': float(item['quantidade'])
+                'quantidade': float(item['quantidade']),
                 'valorGasto': float(item['valorGasto'])}
             }
         }
@@ -136,7 +136,7 @@ def insert_itens_diversos(pedido):
             del existing['_id'] # Remove a chave _id que não pode ser enviada junto
             existing['quantitativos'][str(pedido['number'])] = 
             {
-                'quantidade': float(item['quantidade'])
+                'quantidade': float(item['quantidade']),
                 'valorGasto': float(item['valorGasto'])
             }
             existing = {"$set": existing}
