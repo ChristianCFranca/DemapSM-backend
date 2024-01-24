@@ -111,7 +111,9 @@ def get_item_diverso(pedido, item):
         'inseridoEm': pedido['dataPedido'],
         'unidadeSugerida': item['unidade'],
         'quantitativos': {
-              str(pedido['number']): float(item['quantidade'])
+              str(pedido['number']): {
+                'quantidade': float(item['quantidade'])
+                'valorGasto': float(item['valorGasto'])}
             }
         }
 
@@ -132,7 +134,11 @@ def insert_itens_diversos(pedido):
         if existing:
             existing_id = {"_id": ObjectId(existing['_id'])}
             del existing['_id'] # Remove a chave _id que não pode ser enviada junto
-            existing['quantitativos'][str(pedido['number'])] = float(item['quantidade'])
+            existing['quantitativos'][str(pedido['number'])] = 
+            {
+                'quantidade': float(item['quantidade'])
+                'valorGasto': float(item['valorGasto'])
+            }
             existing = {"$set": existing}
             res = collection.update_one(existing_id, existing)
             if (res.modified_count):
