@@ -134,8 +134,7 @@ def insert_itens_diversos(pedido):
         if existing:
             existing_id = {"_id": ObjectId(existing['_id'])}
             del existing['_id'] # Remove a chave _id que não pode ser enviada junto
-            existing['quantitativos'][str(pedido['number'])] = 
-            {
+            existing['quantitativos'][str(pedido['number'])] = {
                 'quantidade': float(item['quantidade']),
                 'valorGasto': float(item['valorGasto'])
             }
