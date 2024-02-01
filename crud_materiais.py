@@ -25,8 +25,10 @@ def getMateriais(empresa: str = None):
         all_materiais = list(collection.find())
     return all_materiais
 
-def getMateriaisByName(search_string):
+def getMateriaisDiversosByName(search_string):
+    collection = db['itens-diversos']
     materiais = list(collection.find({'descricao': {'$regex': search_string}}))
+    collection = db[COLLECTION]
     return materiais
 
 def getMaterial(material_id):
@@ -73,7 +75,7 @@ def get_material(material_id: str):
         RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
         ]))])
 def get_materiais_by_name(search_string: str):
-    materiais = getMateriaisByName(search_string)
+    materiais = getMateriaisDiversosByName(search_string)
     if not isinstance(materiais, list):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Os materiais deveriam ser do tipo 'list', mas são do tipo {type(materiais)}.")
     return filterMateriais(materiais)
