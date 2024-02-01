@@ -25,6 +25,7 @@ app.include_router(faturamento.router)
 
 origins = [
     "http://localhost:8080",
+    "https://bug-free-train-95vppvwqx4jfxg45-8080.app.github.dev",
     os.environ.get("CORS_ORIGIN") if os.environ.get("CORS_ORIGIN") else "https://demapsm.herokuapp.com"
 ]
 app.add_middleware(
