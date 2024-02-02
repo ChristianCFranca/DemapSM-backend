@@ -109,11 +109,12 @@ def get_item_diverso(pedido, item):
     return {
         'descricao': item['nome'].lower().capitalize().strip(),
         'inseridoEm': pedido['dataPedido'],
-        'unidadeSugerida': item['unidade'],
         'quantitativos': {
               str(pedido['number']): {
                 'quantidade': float(item['quantidade']),
-                'valorGasto': float(item['valorGasto'])}
+                'valorGasto': float(item['valorGasto']),
+                'unidade': item['unidade']
+              }
             }
         }
 
