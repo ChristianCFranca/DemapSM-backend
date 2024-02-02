@@ -27,7 +27,7 @@ def getMateriais(empresa: str = None):
 
 def getMateriaisDiversosByName(search_string):
     collection = db['itens-diversos']
-    materiais = list(collection.find({'descricao': {'$regex': search_string}}))
+    materiais = list(collection.find({'descricao': {'$regex': search_string, '$options': 'i'}}))
     collection = db[COLLECTION]
     return materiais
 
