@@ -121,8 +121,9 @@ def get_item_diverso(pedido, item):
 def insert_itens_diversos(pedido):
     # Lista
     itens_do_pedido = pedido['items'].copy()
+
     # Filtra os itens que são apenas do DEMAP SM
-    items_demap = list(filter(lambda item: item['direcionamentoDeCompra'].lower() == "demap" and not item['almoxarifadoPossui'], itens_do_pedido))
+    items_demap = list(filter(lambda item: (item['direcionamentoDeCompra'] or '').lower() == "demap" and not item['almoxarifadoPossui'], itens_do_pedido))
     # Se não houverem itens comprados pelo Cartão Corporativo, pode retornar
     if (len(items_demap) == 0):
         return
