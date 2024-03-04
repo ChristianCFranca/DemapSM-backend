@@ -35,6 +35,8 @@ class FaturamentoModel(BaseModel):
 def is_same_month_year(pedido, month: int, year: int):
     if pedido['statusStep'] != 6:
         return False
+    if not pedido['dataFinalizacao']:
+        return False
     try:
         data_finalizacao_formatada = pedido['dataFinalizacao'].replace(',','')
     except:
