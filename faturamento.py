@@ -32,15 +32,17 @@ class FaturamentoModel(BaseModel):
     mes: int = Field(gt=0, lt=13, description="O numero relativo ao mes em questao")
     ano: int = Field(gt=2020, description="O numero relativo ao ano em questao")
 
-def is_same_month_year(number, string1: str, month: int, year: int):
+def is_same_month_year(pedido, month: int, year: int):
+    if pedido['statusStep'] != 6:
+        return False
     try:
-        string_formatada = string1.replace(',','')
+        data_finalizacao_formatada = pedido['dataFinalizacao'].replace(',','')
     except:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ocorreu um erro ao processar a data de finalização do pedido {number}. Data recebida: {string1}")
-    if len(string_formatada.split('/')) != 3:
+    if len(data_finalizacao_formatada.split('/')) != 3:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="A data não está no formato correto.")
-    mes = int(string_formatada.split('/')[1])
-    ano = int(string_formatada.split('/')[2])
+    mes = int(data_finalizacao_formatada.split('/')[1])
+    ano = int(data_finalizacao_formatada.split('/')[2])
     return mes == month and ano == year
 
 def format_pedidos(pedidos, empresa):
@@ -125,7 +127,7 @@ def get_faturamento(faturamento_info: FaturamentoModel = Body(...)):
     pedidos = getPedidos(faturamento_info.empresa)
     if len(pedidos) == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="A empresa não possui nenhum pedido cadastrado.")
-    pedidos_filtered_mes_ano = list(filter(lambda pedido: is_same_month_year(pedido['number'], pedido['dataFinalizacao'], mes, ano), pedidos))
+    pedidos_filtered_mes_ano = list(filter(lambda pedido: is_same_month_year(pedido, mes, ano), pedidos))
     if len(pedidos_filtered_mes_ano) == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhum pedido encontrado para o período fornecido.")
     pedidos_fmt = format_pedidos(pedidos_filtered_mes_ano, empresa)
