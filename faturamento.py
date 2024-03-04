@@ -38,7 +38,7 @@ def is_same_month_year(pedido, month: int, year: int):
     try:
         data_finalizacao_formatada = pedido['dataFinalizacao'].replace(',','')
     except:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ocorreu um erro ao processar a data de finalização do pedido {number}. Data recebida: {string1}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ocorreu um erro ao processar a data de finalização do pedido {pedido['number']}. Data do pedido: {pedido['dataPedido']}.Data finalização: {pedido['dataFinalizacao']}")
     if len(data_finalizacao_formatada.split('/')) != 3:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="A data não está no formato correto.")
     mes = int(data_finalizacao_formatada.split('/')[1])
