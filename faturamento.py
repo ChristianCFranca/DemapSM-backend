@@ -33,10 +33,11 @@ class FaturamentoModel(BaseModel):
     ano: int = Field(gt=2020, description="O numero relativo ao ano em questao")
 
 def is_same_month_year(string1: str, month: int, year: int):
-    if len(string1.split('/')) != 3:
+    string_formatada = string1.replace(',','')
+    if len(string_formatada.split('/')) != 3:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="A data não está no formato correto.")
-    mes = int(string1.split('/')[1])
-    ano = int(string1.split('/')[2])
+    mes = int(string_formatada.split('/')[1])
+    ano = int(string_formatada.split('/')[2])
     return mes == month and ano == year
 
 def format_pedidos(pedidos, empresa):
@@ -121,7 +122,7 @@ def get_faturamento(faturamento_info: FaturamentoModel = Body(...)):
     pedidos = getPedidos(faturamento_info.empresa)
     if len(pedidos) == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="A empresa não possui nenhum pedido cadastrado.")
-    pedidos_filtered_mes_ano = list(filter(lambda pedido: is_same_month_year(pedido['dataPedido'], mes, ano), pedidos))
+    pedidos_filtered_mes_ano = list(filter(lambda pedido: is_same_month_year(pedido['dataFinalizacao'], mes, ano), pedidos))
     if len(pedidos_filtered_mes_ano) == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhum pedido encontrado para o período fornecido.")
     pedidos_fmt = format_pedidos(pedidos_filtered_mes_ano, empresa)
