@@ -164,7 +164,7 @@ def send_email_to_role(dests, empresa, pedido_number, status_step, link_para_dow
     try:
         sg = SendGridAPIClient(SENDGRID_API_KEY)
         response = sg.send(message)
-        print("\033[94m"+"EMAIL:" + "\033[0m" + f"\t  Email sent successfully \033[94m {response.status_code} Accepted\033[0m")
+        print(f"\t  Email enviado para {dests} com sucesso. {response.status_code} Accepted")
     except Exception:
         print("\033[91m"+"EMAIL:" + "\033[0m" + "\t  Ocorreu um erro ao enviar o email.")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error in sending the email...")
