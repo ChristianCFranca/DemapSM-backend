@@ -195,11 +195,11 @@ def send_email_acompanhamento(_pedido, pedido_id):
         #if status_step <= 4: # Emails apenas para notificação
         #    send_email_to_role(dests, correct_empresa, pedido['number'], status_step)
 
-        # Inserido um apenas para o almoxarifado
+        # BYPASS: Inserido um apenas para o almoxarifado
         if status_step == 4:
-            send_email_to_role(dests, correct_empresa, pedido['number'], status_step)
+            send_email_to_role(['susup.demap@bcb.gov.br'], correct_empresa, pedido['number'], status_step)
 
-        else: # Etapa 5 é email de attachment
+        elif status_step == 5: # Etapa 5 é email de attachment
 
             items_demap, items_empresa, items_almoxarifado = filter_valid_items_from_pedido(pedido)
 
@@ -212,7 +212,7 @@ def send_email_acompanhamento(_pedido, pedido_id):
             stage_new_pdf_for_group(items_demap, Departamentos.demap, json_data, pdfs_ids)
             stage_new_pdf_for_group(items_almoxarifado, Departamentos.almoxarife, json_data, pdfs_ids)
 
-            # IMPLEMENTAÇÃO BYPASS
+            # BYPASS: Envio do link
             if len(items_almoxarifado > 0): # Verificamos se tem algum item pro almoxarifado
                 if (pdfs_ids.get(Departamentos.almoxarife)):
                     link_to_download_pdf = get_pdf_link_for_download(pdfs_ids[Departamentos.almoxarife])
@@ -291,8 +291,9 @@ def get_pedidos_for_compra():
         ]))])
 def post_pedido(pedido = Body(...)):
     pedido_id = postPedido(pedido)
-    if (pedido['statusStep'] == 2 or pedido['statusStep'] == 3) and SEND_EMAIL: # Envia um email de acompanhamento
-        send_email_acompanhamento(pedido, pedido_id)
+    # Desativado e-mail de acompanhamento na postagem do pedido
+    #if (pedido['statusStep'] == 2 or pedido['statusStep'] == 3) and SEND_EMAIL: # Envia um email de acompanhamento
+    #    send_email_acompanhamento(pedido, pedido_id)
     return {"_id": pedido_id}
 
 
@@ -308,7 +309,6 @@ def put_pedido(pedido_id: str, email: bool = True, pedido = Body(...)):
     if pedido_in_db['statusStep'] > pedido['statusStep']:
         raise HTTPException(status_code=status.HTTP_304_NOT_MODIFIED, detail="Pedido já foi aprovado por outro usuário. Favor atualizar a página.")
 
-    # Desativado temporariamente
     if pedido['statusStep'] != 6 and SEND_EMAIL and email: # Envia um email de acompanhamento (se não for a última etapa)
         send_email_acompanhamento(pedido, pedido_id)
 
