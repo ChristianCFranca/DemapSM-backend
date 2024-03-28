@@ -136,6 +136,7 @@ def send_email_to_role(dests, empresa, pedido_number, status_step, link_para_dow
         <div>
             <a href=\"{link_para_download_do_pdf}\">Link do PDF</a>
         </div>
+        <br>
         <div>
             Esse link expira depois de 1 dia do envio deste e-mail. Se precisar do arquivo de forma digital novamente, favor entrar em contato com Christian França ou Edson Amemiya pelo Teams.
         </div>
