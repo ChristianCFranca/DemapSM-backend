@@ -213,7 +213,7 @@ def send_email_acompanhamento(_pedido, pedido_id):
             stage_new_pdf_for_group(items_almoxarifado, Departamentos.almoxarife, json_data, pdfs_ids)
 
             # BYPASS: Envio do link
-            if len(items_almoxarifado > 0): # Verificamos se tem algum item pro almoxarifado
+            if len(items_almoxarifado) > 0: # Verificamos se tem algum item pro almoxarifado
                 if (pdfs_ids.get(Departamentos.almoxarife)):
                     link_to_download_pdf = get_pdf_link_for_download(pdfs_ids[Departamentos.almoxarife])
                     send_email_to_role(['christian.franca@bcb.gov.br', 'susup.demap@bcb.gov.br', 'fernando.filho@bcb.gov.br', 'jose.roberto@bcb.gov.br', 'wellington.bessa@bcb.gov.br'], correct_empresa, pedido['number'], 10, link_to_download_pdf) # 10 é um valor de bypass para o almoxarifado
