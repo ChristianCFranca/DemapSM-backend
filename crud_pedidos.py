@@ -299,8 +299,8 @@ def put_pedido(pedido_id: str, email: bool = True, pedido = Body(...)):
         raise HTTPException(status_code=status.HTTP_304_NOT_MODIFIED, detail="Pedido já foi aprovado por outro usuário. Favor atualizar a página.")
 
     # Desativado temporariamente
-    #if pedido['statusStep'] != 6 and SEND_EMAIL and email: # Envia um email de acompanhamento (se não for a última etapa)
-    #    send_email_acompanhamento(pedido, pedido_id)
+    if pedido['statusStep'] != 6 and pedido['statusStep'] == 4 and SEND_EMAIL and email: # Envia um email de acompanhamento (se não for a última etapa)
+        send_email_acompanhamento(pedido, pedido_id)
 
     # Verifica se tem itens novos para adicionar no DB relevante
     if pedido['statusStep'] == 6:
