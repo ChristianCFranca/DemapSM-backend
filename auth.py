@@ -208,9 +208,7 @@ def get_dests(role_name, correct_empresa, verbose=False):
         return dests
     else:
         for user in users:
-            print(user)
             empresas = user.get('empresa')
-            print(empresas)
             if not empresas:
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Um usuário do sistema não apresenta a chave \'empresa\'.")
             if not isinstance(empresas, list):
