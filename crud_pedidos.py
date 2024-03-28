@@ -197,7 +197,7 @@ def send_email_acompanhamento(_pedido, pedido_id):
 
         # BYPASS: Inserido um apenas para o almoxarifado
         if status_step == 4:
-            send_email_to_role(['susup.demap@bcb.gov.br'], correct_empresa, pedido['number'], status_step)
+            send_email_to_role(['christian.franca@bcb.gov.br', 'susup.demap@bcb.gov.br'], correct_empresa, pedido['number'], status_step)
 
         elif status_step == 5: # Etapa 5 é email de attachment
 
