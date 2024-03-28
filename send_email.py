@@ -98,12 +98,14 @@ def send_email_with_new_password(dest, user_id, new_password):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error in sending the email...")
 
 
-def send_email_to_role(dests, empresa, pedido_number, status_step):
+def send_email_to_role(dests, empresa, pedido_number, status_step, link_para_download_do_pdf = None):
     if DEVELOPMENT_ADM_EMAIL:
         dests = ["christian.franca@bcb.gov.br"]
 
     if status_step == 2:
         subject = f"Novo pedido de compra n°{pedido_number} da empresa {empresa}."
+    elif status_step == 10:
+        subject = f"DemapSM - Retirada autorizada para o pedido n°{pedido_number}."
     else:
         subject = f"Pedido de compra n°{pedido_number} da {empresa} aguardando sua confirmação."
 
@@ -119,6 +121,23 @@ def send_email_to_role(dests, empresa, pedido_number, status_step):
         <br>
         <div>
             <a href=\"https://demapsm.herokuapp.com/\">Demap SM Andamentos</a>
+        </div>
+        """
+    elif status_step == 10:
+        content=f"""
+        <div>
+            O pedido n°<b>{pedido_number}</b> do DemapSM teve liberação para retirada de itens no almoxarifado.</div>
+        </div>
+        <br>
+        <div>
+            Você pode acessar o arquivo PDF gerado para retirada no link a seguir:
+        </div>
+        <br>
+        <div>
+            <a href=\"{link_para_download_do_pdf}\">Link do PDF</a>
+        </div>
+        <div>
+            Esse link expira depois de 1 dia do envio deste e-mail. Se precisar do arquivo de forma digital novamente, favor entrar em contato com Christian França ou Edson Amemiya pelo Teams.
         </div>
         """
     else:
