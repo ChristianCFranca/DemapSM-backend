@@ -7,7 +7,7 @@ from auth import permissions_user_role, get_dests
 from cargos import RoleName, Departamentos
 from send_email import SEND_EMAIL, send_email_to_role
 
-from generate_pdf_and_sheet import stage_pdf
+from generate_pdf_and_sheet import stage_pdf, get_pdf_link_for_download
 
 COLLECTION = "pedidosdecompra"
 collection = db[COLLECTION]
@@ -192,7 +192,11 @@ def send_email_acompanhamento(_pedido, pedido_id):
         if 'number' not in pedido:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="O pedido não apresente o identificador de número.")
 
-        if status_step <= 4: # Emails apenas para notificação
+        #if status_step <= 4: # Emails apenas para notificação
+        #    send_email_to_role(dests, correct_empresa, pedido['number'], status_step)
+
+        # Inserido um apenas para o almoxarifado
+        if status_step == 4:
             send_email_to_role(dests, correct_empresa, pedido['number'], status_step)
 
         else: # Etapa 5 é email de attachment
@@ -208,6 +212,12 @@ def send_email_acompanhamento(_pedido, pedido_id):
             stage_new_pdf_for_group(items_demap, Departamentos.demap, json_data, pdfs_ids)
             stage_new_pdf_for_group(items_almoxarifado, Departamentos.almoxarife, json_data, pdfs_ids)
 
+            # IMPLEMENTAÇÃO BYPASS
+            if len(items_almoxarifado > 0): # Verificamos se tem algum item pro almoxarifado
+                if (pdfs_ids.get(Departamentos.almoxarife)):
+                    link_to_download_pdf = get_pdf_link_for_download(pdfs_ids[Departamentos.almoxarife])
+                    send_email_to_role(['christian.franca@bcb.gov.br', 'susup.demap@bcb.gov.br', 'fernando.filho@bcb.gov.br', 'jose.roberto@bcb.gov.br', 'wellington.bessa@bcb.gov.br'], correct_empresa, pedido['number'], 10, link_to_download_pdf) # 10 é um valor de bypass para o almoxarifado
+            
             if pdfs_ids: # Verifica se pelo menos um pdf foi setado para ir pro banco de dados
                 _pedido["pdfs_ids"] = pdfs_ids # Esta alteração altera o dicionário ORIGINAL, e não a CÓPIA. Isso fará com que, ao atualizar o pedido saindo desta função, o pedido tenha as informações de id's dos documentos correlacionados
 
@@ -299,7 +309,7 @@ def put_pedido(pedido_id: str, email: bool = True, pedido = Body(...)):
         raise HTTPException(status_code=status.HTTP_304_NOT_MODIFIED, detail="Pedido já foi aprovado por outro usuário. Favor atualizar a página.")
 
     # Desativado temporariamente
-    if pedido['statusStep'] != 6 and pedido['statusStep'] == 4 and SEND_EMAIL and email: # Envia um email de acompanhamento (se não for a última etapa)
+    if pedido['statusStep'] != 6 and SEND_EMAIL and email: # Envia um email de acompanhamento (se não for a última etapa)
         send_email_acompanhamento(pedido, pedido_id)
 
     # Verifica se tem itens novos para adicionar no DB relevante
