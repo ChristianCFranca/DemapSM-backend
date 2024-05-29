@@ -5,7 +5,7 @@ from bson import ObjectId
 
 from auth import permissions_user_role, get_dests
 from cargos import RoleName, Departamentos
-from send_email import SEND_EMAIL, send_email_to_role
+from send_email import SEND_EMAIL, send_email_to_role, send_email_to_solicitante_almoxarifado
 
 from generate_pdf_and_sheet import stage_pdf, get_pdf_link_for_download
 
@@ -216,7 +216,10 @@ def send_email_acompanhamento(_pedido, pedido_id):
             if len(items_almoxarifado) > 0: # Verificamos se tem algum item pro almoxarifado
                 if (pdfs_ids.get(Departamentos.almoxarife)):
                     link_to_download_pdf = get_pdf_link_for_download(pdfs_ids[Departamentos.almoxarife])
+                    # Email do almox
                     send_email_to_role(['christian.franca@bcb.gov.br', 'susup.demap@bcb.gov.br', 'fernando.filho@bcb.gov.br', 'jose.roberto@bcb.gov.br', 'wellington.bessa@bcb.gov.br', 'robson.brito@bcb.gov.br'], correct_empresa, pedido['number'], 10, link_to_download_pdf) # 10 é um valor de bypass para o almoxarifado
+                    # Email do solicitante
+                    send_email_to_solicitante_almoxarifado(pedido['email'], pedido['number'], link_to_download_pdf)
             
             if pdfs_ids: # Verifica se pelo menos um pdf foi setado para ir pro banco de dados
                 _pedido["pdfs_ids"] = pdfs_ids # Esta alteração altera o dicionário ORIGINAL, e não a CÓPIA. Isso fará com que, ao atualizar o pedido saindo desta função, o pedido tenha as informações de id's dos documentos correlacionados
