@@ -97,8 +97,7 @@ def send_email_with_new_password(dest, user_id, new_password):
         print("\033[91m"+"EMAIL:" + "\033[0m" + "\t  Ocorreu um erro ao enviar o email.")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error in sending the email...")
 
-def send_email_to_solicitante_almoxarifado(solicitante, pedido_number, link_para_download_do_pdf = None):
-    dests = [solicitante]
+def send_email_to_solicitante_almoxarifado(dests, pedido_number, link_para_download_do_pdf = None):
     if DEVELOPMENT_ADM_EMAIL:
         dests = ["christian.franca@bcb.gov.br"]
 
