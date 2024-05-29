@@ -97,6 +97,44 @@ def send_email_with_new_password(dest, user_id, new_password):
         print("\033[91m"+"EMAIL:" + "\033[0m" + "\t  Ocorreu um erro ao enviar o email.")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error in sending the email...")
 
+def send_email_to_solicitante_almoxarifado(solicitante, pedido_number, link_para_download_do_pdf = None):
+    dests = [solicitante]
+    if DEVELOPMENT_ADM_EMAIL:
+        dests = ["christian.franca@bcb.gov.br"]
+
+    subject = f"DemapSM - Pedido n°{pedido_number} liberado para retirada no almoxarifado."
+
+    content=f"""
+    <div>
+        Seu pedido de compra (n°<b>{pedido_number}</b>) já foi liberado para retirada no almoxarifado.</div> Você pode conferir o documento de retirada no link a seguir:
+    </div>
+    <br>
+    <div>
+        <a href=\"{link_para_download_do_pdf}\">Link do PDF</a>
+    </div>
+    <br>
+    <div>
+        Você pode acessar mais informações a respeito dos seus pedidos no DemapSM:
+    </div>
+    <br>
+    <div>
+        <a href=\"https://demapsm.herokuapp.com/\">Demap SM Andamentos</a>
+    </div>
+    """
+    
+    message = Mail(
+        from_email="smdemap@gmail.com",
+        to_emails=dests,
+        subject=subject,
+        html_content=content
+    )
+    try:
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        response = sg.send(message)
+        print(f"\t  Email enviado para {dests} com sucesso. {response.status_code} Accepted")
+    except Exception:
+        print("\033[91m"+"EMAIL:" + "\033[0m" + "\t  Ocorreu um erro ao enviar o email.")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error in sending the email...")
 
 def send_email_to_role(dests, empresa, pedido_number, status_step, link_para_download_do_pdf = None):
     if DEVELOPMENT_ADM_EMAIL:
