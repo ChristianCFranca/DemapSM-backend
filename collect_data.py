@@ -1,4 +1,4 @@
-.from fastapi import APIRouter, HTTPException, status, Depends, Body, Query
+from fastapi import APIRouter, HTTPException, status, Depends, Body, Query
 
 from auth import permissions_user_role
 from cargos import RoleName, Departamentos
