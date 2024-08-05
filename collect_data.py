@@ -151,7 +151,7 @@ async def collect_quantitativos(mes: int = Query(default=5, gt=0, lt=13), ano: i
 
 @router.post("/pdfs", summary="Obtem os links para download dos PDFs associados.",
     dependencies=[Depends(permissions_user_role(approved_roles=[
-            RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.regular
+            RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
             ]))])
 async def collect_pdfs(pdfs_ids: dict = Body(...)):
     pdfs_links = dict()
