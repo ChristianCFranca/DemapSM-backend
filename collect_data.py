@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Body, Query
+.from fastapi import APIRouter, HTTPException, status, Depends, Body, Query
 
 from auth import permissions_user_role
 from cargos import RoleName, Departamentos
@@ -161,7 +161,7 @@ async def collect_pdfs(pdfs_ids: dict = Body(...)):
 
 @router.put("/redo-pdfs/{pedido_id}", summary="Remonta os PDFs para o pedido em questão.",
     dependencies=[Depends(permissions_user_role(approved_roles=[
-            RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.regular
+            RoleName.admin, RoleName.fiscal, RoleName.assistente, RoleName.almoxarife, RoleName.regular
             ]))])
 def redo_pdfs(pedido_id: str, pedido = Body(...)):
     # Salva o pedido original para que nada se altere quanto as informações originais
