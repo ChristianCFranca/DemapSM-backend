@@ -29,7 +29,7 @@ TEMPLATE_FOR_FATURAMENTO = "8e600f10-195a-4263-96dd-ecea6da316d7"
 
 TEMPLATES_FOR_DEPARTAMENTO = {
     Departamentos.demap: "BFDE2B7D-4255-4ACA-9525-0209F55C0CFC".lower(),
-    Departamentos.almoxarife: "91C4B381-8608-4782-86B5-A8F92DE672BA".lower(),
+    Departamentos.almoxarife: "17A49759-5540-441E-8050-BED148E92AF6".lower(),
     Departamentos.empresa: "10AE62D0-CAAE-4FD1-9781-3989F10AF5AA".lower()
 }
 TEMPLATES_TO_DEPARTAMENTOS = {value : key for key, value in TEMPLATES_FOR_DEPARTAMENTO.items()}
