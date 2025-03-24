@@ -58,6 +58,7 @@ def stage_pdf_faturamento(json_data):
             print("\033[94mPDF:\033[0m" + f"\t  PDF postado para faturamento com sucesso.")
             return response.json()
         else:
+            print("\033[93mPDF:\033[0m\t Erro " + f"{response.status_code}: " + response.text)
             print("\033[93mPDF:\033[0m" + f"\t  Não foi possível postar o PDF do faturamento. Tentando novamente... Tentativas restantes: {counter}")
     raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Não foi possível postar o PDF para o serviço de PDFs.")
 
@@ -71,7 +72,6 @@ def stage_pdf(json_data, departamento):
             print("\033[94mPDF:\033[0m" + f"\t  PDF postado para {departamento} com sucesso.")
             return response.json()
         else:
-            print("\033[93mPDF:\033[0m\t Erro " + f"{response.status_code}: " + response.text)
             print("\033[93mPDF:\033[0m" + f"\t  Não foi possível postar o PDF. Tentando novamente... Tentativas restantes: {counter}")
     raise HTTPException(status_code=status_code.HTTP_500_INTERNAL_SERVER_ERROR, detail="Não foi possível postar a criação do PDF.")
 
